@@ -1,0 +1,47 @@
+:root {
+  --text: #1f2933;
+  --bg: #fff;
+  --border: #e4e7eb;
+  --accent: #0b7fc4;
+  font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e4e7eb;
+    --bg: #12161b;
+    --border: #2a313a;
+    --accent: #4fb3ef;
+  }
+}
+
+body {
+  margin: 0;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.nav a.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
