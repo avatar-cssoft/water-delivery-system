@@ -166,7 +166,6 @@ function Register() {
             type="tel"
             inputMode="tel"
             autoComplete="tel"
-            placeholder="0912 345 6789"
             value={values.phone}
             onChange={handleChange}
             maxLength={LIMITS.phone.max}
