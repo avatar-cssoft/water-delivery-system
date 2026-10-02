@@ -3,6 +3,7 @@
   --bg: #fff;
   --border: #e4e7eb;
   --accent: #0b7fc4;
+
   font: 16px/1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);

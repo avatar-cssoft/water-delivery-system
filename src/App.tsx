@@ -7,6 +7,7 @@ import Register from './pages/auth/Register'
 import CustomerHome from './pages/customer/CustomerHome'
 import RiderHome from './pages/rider/RiderHome'
 import AdminHome from './pages/admin/AdminHome'
+import UserAccounts from './pages/UserAccount'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="account" element={<UserAccounts />} />
           <Route path="customer" element={<CustomerHome />} />
           <Route path="rider" element={<RiderHome />} />
           <Route path="admin" element={<AdminHome />} />

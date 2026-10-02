@@ -6,15 +6,15 @@ A web and mobile app where customers order water refills, pick a delivery slot, 
 
 ## Branches
 
-- `main` holds reviewed, merged work only.
-- Work on a feature branch named after its Jira issue, for example `feature/SCRUM-19-register`, and merge it through a reviewed pull request.
+* `main` holds reviewed, merged work only.
+* Work on a feature branch named after its Jira issue, for example `feature/SCRUM-19-register`, and merge it through a reviewed pull request.
 
 ## Tech stack
 
-- React + TypeScript, built with Vite
-- React Router for pages
-- Supabase for the database and auth (`@supabase/supabase-js`)
-- GitHub Actions CI runs lint and build on every pull request
+* React + TypeScript, built with Vite
+* React Router for pages
+* Supabase for the database and auth (`@supabase/supabase-js`)
+* GitHub Actions CI runs lint and build on every pull request
 
 ## Getting started
 
@@ -22,20 +22,22 @@ Requires Node.js 24.
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in your Supabase URL and anon key
+cp .env.example .env.local
+# then fill in your Supabase URL and publishable key
+
 npm run dev
 ```
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Start the dev server |
-| `npm run build` | Type-check and build for production |
-| `npm run lint` | Run oxlint |
-| `npm run preview` | Preview the production build |
+| Command           | What it does                        |
+| ----------------- | ----------------------------------- |
+| `npm run dev`     | Start the dev server                |
+| `npm run build`   | Type-check and build for production |
+| `npm run lint`    | Run linting                         |
+| `npm run preview` | Preview the production build        |
 
 ## Project structure
 
-```
+```text
 src/
   components/     shared UI (Layout, nav)
   lib/supabase.ts Supabase client
@@ -45,6 +47,7 @@ src/
     rider/        daily delivery list
     admin/        stock, prices, containers, reports
   types/          shared TypeScript types
+
 supabase/
   migrations/     SQL migrations
 ```
