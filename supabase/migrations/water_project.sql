@@ -15,7 +15,7 @@ create table profiles (
     full_name text not null,
     phone text not null,
     address text not null,
-    role text not null default 'customer',
+    role text not null default 'user',
     created_at timestamptz default now()
 );
 
