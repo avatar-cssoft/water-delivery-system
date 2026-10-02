@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+type Profile = {
+  first_name: string
+  last_name: string
+  middle_initial: string | null
+  address: string
+  phone: string
+}
+
 function UserAccounts() {
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -52,6 +60,10 @@ function UserAccounts() {
 
   if (error) {
     return <p>{error}</p>
+  }
+
+  if (!profile) {
+    return <p>Profile not found.</p>
   }
 
   return (
