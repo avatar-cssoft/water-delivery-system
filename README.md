@@ -1,75 +1,53 @@
-# React + TypeScript + Vite
+# Water Delivery System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CSSOFT1 Software Engineering 1 project by Team Avatar (BSCS IAB1, University of Baguio, SY 2026-2027).
 
-Currently, two official plugins are available:
+A web and mobile app where customers order water refills, pick a delivery slot, pay by cash or e-wallet, and track their order. Riders get a daily delivery list, and admins manage stock, prices, containers, and reports. The AI feature is an agentic workflow using Small Language Models (SLMs) for chat ordering and dispatch suggestions.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Branches
 
-## React Compiler
+* `main` holds reviewed, merged work only.
+* Work on a feature branch named after its Jira issue, for example `feature/SCRUM-19-register`, and merge it through a reviewed pull request.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech stack
 
-## Expanding the ESLint configuration
+* React + TypeScript, built with Vite
+* React Router for pages
+* Supabase for the database and auth (`@supabase/supabase-js`)
+* GitHub Actions CI runs lint and build on every pull request
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Requires Node.js 24.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```bash
+npm install
+cp .env.example .env.local
+# then fill in your Supabase URL and publishable key
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+| Command           | What it does                        |
+| ----------------- | ----------------------------------- |
+| `npm run dev`     | Start the dev server                |
+| `npm run build`   | Type-check and build for production |
+| `npm run lint`    | Run linting                         |
+| `npm run preview` | Preview the production build        |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Project structure
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/
+  components/     shared UI (Layout, nav)
+  lib/supabase.ts Supabase client
+  pages/
+    auth/         Login, Register
+    customer/     ordering, slots, payment, tracking
+    rider/        daily delivery list
+    admin/        stock, prices, containers, reports
+  types/          shared TypeScript types
 
+supabase/
+  migrations/     SQL migrations
 ```
