@@ -5,6 +5,7 @@ export default function Layout() {
     <>
       <nav className="nav">
         <NavLink to="/">Home</NavLink>
+        <NavLink to="/products">Products</NavLink>
         <NavLink to="/customer">Customer</NavLink>
         <NavLink to="/rider">Rider</NavLink>
         <NavLink to="/admin">Admin</NavLink>

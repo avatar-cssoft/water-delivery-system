@@ -5,6 +5,7 @@ import NotFound from './pages/NotFound'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import CustomerHome from './pages/customer/CustomerHome'
+import Catalog from './pages/customer/Catalog'
 import RiderHome from './pages/rider/RiderHome'
 import AdminHome from './pages/admin/AdminHome'
 import UserAccounts from './pages/UserAccount'
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="account" element={<UserAccounts />} />
+          <Route path="products" element={<Catalog />} />
           <Route path="customer" element={<CustomerHome />} />
           <Route path="rider" element={<RiderHome />} />
           <Route path="admin" element={<AdminHome />} />
