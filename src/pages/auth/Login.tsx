@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
 function Login() {
@@ -14,7 +13,6 @@ function Login() {
     setError('')
     setLoading(true)
 
-    // Login
     const { data, error: loginError } =
       await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -27,7 +25,6 @@ function Login() {
       return
     }
 
-    // Get user's profile and role
     const { data: profile, error: profileError } =
       await supabase
         .from('profiles')
@@ -41,7 +38,6 @@ function Login() {
       return
     }
 
-    // Check role
     if (profile.role === 'admin') {
       window.location.href = '/admin'
     } else if (profile.role === 'employee') {
@@ -49,8 +45,6 @@ function Login() {
     } else {
       window.location.href = '/account'
     }
-
-    setLoading(false)
   }
 
   return (
@@ -94,11 +88,10 @@ function Login() {
       </form>
 
       <p>
-        Don't have an account? <Link to="/register">Register</Link>
+        Don't have an account? <a href="/register">Register</a>
       </p>
     </div>
   )
 }
 
 export default Login
-
