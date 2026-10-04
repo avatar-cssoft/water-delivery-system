@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+
 import { getCurrentUserRole } from '../../lib/api/auth'
 import { createProduct } from '../../lib/api/products'
 import {
@@ -98,7 +98,7 @@ export default function AdminHome() {
       <section>
         <h1>Admin</h1>
         <p>
-          Please <Link to="/login">log in</Link> as an admin to manage products.
+          Please <a href="/">log in</a> as an admin to manage products.
         </p>
       </section>
     )
@@ -219,7 +219,7 @@ export default function AdminHome() {
       </form>
 
       <p>
-        <Link to="/products">View the catalog</Link>
+         Please <a href="/">log in</a> as an admin to manage products.
       </p>
     </section>
   )

@@ -14,19 +14,34 @@ function Products() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('')
-
-  const [containerSize, setContainerSize] = useState('')
+  const [containerAmount, setContainerAmount] = useState('')
   const [containerUnit, setContainerUnit] = useState('Gallons')
 
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [showForm, setShowForm] = useState(false)
+
   useEffect(() => {
-    getProducts()
+    const loadProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: true })
+
+      if (error) {
+        console.error(error)
+        setLoading(false)
+        return
+      }
+
+      setProducts(data || [])
+      setLoading(false)
+    }
+
+    loadProducts()
   }, [])
 
   const getProducts = async () => {
@@ -37,71 +52,35 @@ function Products() {
 
     if (error) {
       console.error(error)
-      setLoading(false)
       return
     }
 
     setProducts(data || [])
-    setLoading(false)
   }
 
-  const clearForm = () => {
+  const resetForm = () => {
     setName('')
     setDescription('')
     setPrice('')
     setStock('')
-    setContainerSize('')
+    setContainerAmount('')
     setContainerUnit('Gallons')
-  }
-
-  const startAdd = () => {
     setEditingProduct(null)
-    clearForm()
-    setShowAddForm(true)
-  }
-
-  const cancelAdd = () => {
-    setShowAddForm(false)
-    clearForm()
-  }
-
-  const startEdit = (product: Product) => {
-    setShowAddForm(false)
-    setEditingProduct(product)
-
-    setName(product.name)
-    setDescription(product.description || '')
-    setPrice(product.price.toString())
-    setStock(product.stock.toString())
-
-    // Split "5 Gallons" into "5" and "Gallons"
-    const parts = product.container_size.split(' ')
-
-    setContainerSize(parts[0])
-    setContainerUnit(parts.slice(1).join(' ') || 'Gallons')
-  }
-
-  const cancelEdit = () => {
-    setEditingProduct(null)
-    clearForm()
-  }
-
-  const getContainerSize = () => {
-    return `${containerSize} ${containerUnit}`
+    setShowForm(false)
   }
 
   const addProduct = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const { error } = await supabase
-      .from('products')
-      .insert({
-        name: name,
-        description: description,
-        price: Number(price),
-        stock: Number(stock),
-        container_size: getContainerSize(),
-      })
+    const containerSize = `${containerAmount} ${containerUnit}`
+
+    const { error } = await supabase.from('products').insert({
+      name: name.trim(),
+      description: description.trim() || null,
+      price: Number(price),
+      stock: Number(stock),
+      container_size: containerSize,
+    })
 
     if (error) {
       console.error(error)
@@ -109,10 +88,31 @@ function Products() {
       return
     }
 
-    alert('Product added successfully!')
+    alert('Product added successfully.')
 
-    cancelAdd()
-    getProducts()
+    await getProducts()
+    resetForm()
+  }
+
+  const startEdit = (product: Product) => {
+    setEditingProduct(product)
+
+    setName(product.name)
+    setDescription(product.description || '')
+    setPrice(String(product.price))
+    setStock(String(product.stock))
+
+    const parts = product.container_size.split(' ')
+
+    if (parts.length >= 2) {
+      setContainerAmount(parts[0])
+      setContainerUnit(parts.slice(1).join(' '))
+    } else {
+      setContainerAmount(product.container_size)
+      setContainerUnit('Gallons')
+    }
+
+    setShowForm(true)
   }
 
   const saveProduct = async (e: React.FormEvent) => {
@@ -122,14 +122,16 @@ function Products() {
       return
     }
 
+    const containerSize = `${containerAmount} ${containerUnit}`
+
     const { error } = await supabase
       .from('products')
       .update({
-        name: name,
-        description: description,
+        name: name.trim(),
+        description: description.trim() || null,
         price: Number(price),
         stock: Number(stock),
-        container_size: getContainerSize(),
+        container_size: containerSize,
       })
       .eq('id', editingProduct.id)
 
@@ -139,14 +141,35 @@ function Products() {
       return
     }
 
-    alert('Product updated successfully!')
+    alert('Product updated successfully.')
 
-    cancelEdit()
-    getProducts()
+    await getProducts()
+    resetForm()
   }
 
-  if (loading) {
-    return <p>Loading products...</p>
+  const deleteProduct = async (id: number) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this product?',
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error(error)
+      alert(error.message)
+      return
+    }
+
+    alert('Product deleted successfully.')
+
+    await getProducts()
   }
 
   return (
@@ -156,261 +179,167 @@ function Products() {
       <h2>Products</h2>
 
       <button onClick={() => (window.location.href = '/admin')}>
-        Back to Admin
-      </button>
-
-      {' '}
-
-      <button onClick={startAdd}>
-        Add Product
+        Back to Admin Dashboard
       </button>
 
       <br />
       <br />
 
-      {products.length === 0 ? (
+      <button
+        onClick={() => {
+          if (showForm) {
+            resetForm()
+          } else {
+            setShowForm(true)
+          }
+        }}
+      >
+        {showForm ? 'Cancel' : 'Add Product'}
+      </button>
+
+      <br />
+      <br />
+
+      {showForm && (
+        <form onSubmit={editingProduct ? saveProduct : addProduct}>
+          <h3>{editingProduct ? 'Edit Product' : 'Add Product'}</h3>
+
+          <div>
+            <label>Product Name</label>
+            <br />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
+          <br />
+
+          <div>
+            <label>Description</label>
+            <br />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+
+          <br />
+
+          <div>
+            <label>Price</label>
+            <br />
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+            />
+          </div>
+
+          <br />
+
+          <div>
+            <label>Stock</label>
+            <br />
+            <input
+              type="number"
+              min="0"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              required
+            />
+          </div>
+
+          <br />
+
+          <div>
+            <label>Container Size</label>
+            <br />
+
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={containerAmount}
+              onChange={(e) => setContainerAmount(e.target.value)}
+              required
+            />
+
+            <select
+              value={containerUnit}
+              onChange={(e) => setContainerUnit(e.target.value)}
+            >
+              <option value="Gallons">Gallons</option>
+              <option value="Liters">Liters</option>
+              <option value="Milliliters">Milliliters</option>
+            </select>
+          </div>
+
+          <br />
+
+          <button type="submit">
+            {editingProduct ? 'Save Changes' : 'Add Product'}
+          </button>
+
+          {editingProduct && (
+            <button type="button" onClick={resetForm}>
+              Cancel Edit
+            </button>
+          )}
+        </form>
+      )}
+
+      <hr />
+
+      <h3>Product List</h3>
+
+      {loading ? (
+        <p>Loading products...</p>
+      ) : products.length === 0 ? (
         <p>No products available.</p>
       ) : (
         <table border={1}>
           <thead>
             <tr>
+              <th>ID</th>
               <th>Product</th>
               <th>Description</th>
               <th>Container Size</th>
               <th>Price</th>
               <th>Stock</th>
-              <th>Action</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {products.map((product) => (
               <tr key={product.id}>
+                <td>{product.id}</td>
                 <td>{product.name}</td>
-                <td>{product.description}</td>
+                <td>{product.description || 'No description'}</td>
                 <td>{product.container_size}</td>
-                <td>₱{product.price}</td>
+                <td>₱{Number(product.price).toFixed(2)}</td>
                 <td>{product.stock}</td>
-
                 <td>
                   <button onClick={() => startEdit(product)}>
                     Edit
+                  </button>
+
+                  {' '}
+
+                  <button onClick={() => deleteProduct(product.id)}>
+                    Delete
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      )}
-
-      {showAddForm && (
-        <div>
-          <hr />
-
-          <h3>Add Product</h3>
-
-          <form onSubmit={addProduct}>
-            <div>
-              <label>Product Name</label>
-              <br />
-
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label>Description</label>
-              <br />
-
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label>Container Size</label>
-              <br />
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={containerSize}
-                onChange={(e) => setContainerSize(e.target.value)}
-                placeholder="Enter size"
-                required
-              />
-
-              {' '}
-
-              <select
-                value={containerUnit}
-                onChange={(e) => setContainerUnit(e.target.value)}
-              >
-                <option value="Gallons">Gallons</option>
-                <option value="Liters">Liters</option>
-                <option value="Milliliters">Milliliters</option>
-              </select>
-            </div>
-
-            <br />
-
-            <div>
-              <label>Price</label>
-              <br />
-
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label>Stock</label>
-              <br />
-
-              <input
-                type="number"
-                min="0"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                required
-              />
-            </div>
-
-            <br />
-
-            <button type="submit">
-              Add Product
-            </button>
-
-            {' '}
-
-            <button type="button" onClick={cancelAdd}>
-              Cancel
-            </button>
-          </form>
-        </div>
-      )}
-
-      {editingProduct && (
-        <div>
-          <hr />
-
-          <h3>Edit Product</h3>
-
-          <form onSubmit={saveProduct}>
-            <div>
-              <label>Product Name</label>
-              <br />
-
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label>Description</label>
-              <br />
-
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label>Container Size</label>
-              <br />
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={containerSize}
-                onChange={(e) => setContainerSize(e.target.value)}
-                placeholder="Enter size"
-                required
-              />
-
-              {' '}
-
-              <select
-                value={containerUnit}
-                onChange={(e) => setContainerUnit(e.target.value)}
-              >
-                <option value="Gallons">Gallons</option>
-                <option value="Liters">Liters</option>
-                <option value="Milliliters">Milliliters</option>
-              </select>
-            </div>
-
-            <br />
-
-            <div>
-              <label>Price</label>
-              <br />
-
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-              />
-            </div>
-
-            <br />
-
-            <div>
-              <label>Stock</label>
-              <br />
-
-              <input
-                type="number"
-                min="0"
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                required
-              />
-            </div>
-
-            <br />
-
-            <button type="submit">
-              Save Changes
-            </button>
-
-            {' '}
-
-            <button type="button" onClick={cancelEdit}>
-              Cancel
-            </button>
-          </form>
-        </div>
       )}
     </div>
   )

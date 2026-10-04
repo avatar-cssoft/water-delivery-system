@@ -15,24 +15,24 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getProducts()
-  }, [])
+    const loadProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: true })
 
-  const getProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('id', { ascending: true })
+      if (error) {
+        console.error(error)
+        setLoading(false)
+        return
+      }
 
-    if (error) {
-      console.error(error)
+      setProducts(data || [])
       setLoading(false)
-      return
     }
 
-    setProducts(data || [])
-    setLoading(false)
-  }
+    loadProducts()
+  }, [])
 
   return (
     <div>
@@ -87,4 +87,3 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard
-
