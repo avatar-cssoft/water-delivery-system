@@ -19,20 +19,41 @@ function toNavRole(role: string | null): NavRole {
 export default function Layout() {
   const [role, setRole] = useState<NavRole>('checking')
 
-  // Login and logout both reload the page, so the role is only read on load.
+  // Read the role on load, and again whenever someone signs in or out without
+  // a page reload (e.g. sign-up, or signing out in another tab).
   useEffect(() => {
     let cancelled = false
+    // Only the newest request may set the role, so a slow older one can't
+    // overwrite it.
+    let latest = 0
 
-    getCurrentUserRole()
-      .then((r) => {
-        if (!cancelled) setRole(toNavRole(r))
-      })
-      .catch(() => {
-        if (!cancelled) setRole('signed-in')
-      })
+    const loadRole = () => {
+      const request = ++latest
+
+      getCurrentUserRole()
+        .then((r) => {
+          if (!cancelled && request === latest) setRole(toNavRole(r))
+        })
+        .catch(() => {
+          if (!cancelled && request === latest) setRole('signed-in')
+        })
+    }
+
+    loadRole()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        // Supabase says not to call its other methods inside this callback,
+        // so load the role right after it returns.
+        setTimeout(loadRole, 0)
+      }
+    })
 
     return () => {
       cancelled = true
+      subscription.unsubscribe()
     }
   }, [])
 
