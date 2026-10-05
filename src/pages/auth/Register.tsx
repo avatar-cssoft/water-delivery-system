@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+
 import { supabase } from '../../lib/supabase'
 import {
   LIMITS,
@@ -243,7 +243,7 @@ function Register() {
       </form>
 
       <p>
-        Already have an account? <Link to="/login">Login</Link>
+        Already have an account? <a href="/">Login</a>
       </p>
     </div>
   )
