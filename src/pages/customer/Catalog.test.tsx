@@ -1,13 +1,23 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Product } from '../../lib/api/products'
+import type { Product, ProductChange } from '../../lib/api/products'
 import Catalog from './Catalog'
 
 const getProducts = vi.fn<() => Promise<Product[]>>()
+const unsubscribe = vi.fn()
+// The catalog's realtime listener, captured so tests can push changes into it.
+let pushChange: (change: ProductChange) => void = () => {}
 
 vi.mock('../../lib/api/products', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/api/products')>()
-  return { ...actual, getProducts: () => getProducts() }
+  return {
+    ...actual,
+    getProducts: () => getProducts(),
+    subscribeToProducts: (onChange: (change: ProductChange) => void) => {
+      pushChange = onChange
+      return unsubscribe
+    },
+  }
 })
 
 vi.mock('../../lib/supabase', () => ({ supabase: {} }))
@@ -107,5 +117,95 @@ describe('Catalog', () => {
     render(<Catalog />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('permission denied')
+  })
+})
+
+describe('Catalog live updates', () => {
+  beforeEach(() => {
+    getProducts.mockReset()
+    unsubscribe.mockReset()
+    pushChange = () => {}
+  })
+
+  it('shows a product added elsewhere without a refresh', async () => {
+    getProducts.mockResolvedValue([])
+    render(<Catalog />)
+    await screen.findByText('No products available yet.')
+
+    act(() => {
+      pushChange({
+        type: 'upsert',
+        product: {
+          id: 9,
+          name: 'Slim container',
+          description: null,
+          price: 240,
+          stock: 5,
+          containerSize: '5 gal',
+          available: true,
+        },
+      })
+    })
+
+    const row = rowFor('Slim container')
+    expect(row.getByText('₱240.00')).toBeInTheDocument()
+    expect(row.getByText('In stock')).toBeInTheDocument()
+  })
+
+  it('updates price and availability when a product is edited', async () => {
+    getProducts.mockResolvedValue(products)
+    render(<Catalog />)
+    await screen.findByRole('table')
+
+    act(() => {
+      pushChange({
+        type: 'upsert',
+        product: { ...products[0], price: 32, stock: 0, available: false },
+      })
+    })
+
+    const round = rowFor('Round gallon refill')
+    expect(round.getByText('₱32.00')).toBeInTheDocument()
+    expect(round.getByText('Out of stock')).toBeInTheDocument()
+    expect(screen.getAllByRole('row')).toHaveLength(4)
+  })
+
+  it('removes a deleted product', async () => {
+    getProducts.mockResolvedValue(products)
+    render(<Catalog />)
+    await screen.findByRole('table')
+
+    act(() => {
+      pushChange({ type: 'delete', id: 2 })
+    })
+
+    expect(screen.queryByText('Slim gallon refill')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('row')).toHaveLength(3)
+  })
+
+  it('keeps a change that arrives while the first load is still running', async () => {
+    let finishLoading: (data: Product[]) => void = () => {}
+    getProducts.mockReturnValue(new Promise((resolve) => (finishLoading = resolve)))
+    render(<Catalog />)
+
+    // The change arrives first; the (older) list loads after it.
+    act(() => {
+      pushChange({ type: 'upsert', product: { ...products[1], stock: 8, available: true } })
+    })
+    await act(async () => {
+      finishLoading(products)
+    })
+
+    expect(rowFor('Slim gallon refill').getByText('In stock')).toBeInTheDocument()
+  })
+
+  it('stops listening when the page is closed', async () => {
+    getProducts.mockResolvedValue(products)
+    const { unmount } = render(<Catalog />)
+    await screen.findByRole('table')
+
+    unmount()
+
+    expect(unsubscribe).toHaveBeenCalledTimes(1)
   })
 })
