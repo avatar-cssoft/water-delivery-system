@@ -98,7 +98,7 @@ export default function AdminHome() {
       <section>
         <h1>Admin</h1>
         <p>
-          Please <a href="/">log in</a> as an admin to manage products.
+          Please <a href="/login">log in</a> as an admin to manage products.
         </p>
       </section>
     )
@@ -219,7 +219,7 @@ export default function AdminHome() {
       </form>
 
       <p>
-         Please <a href="/">log in</a> as an admin to manage products.
+         Please <a href="/login">log in</a> as an admin to manage products.
       </p>
     </section>
   )
