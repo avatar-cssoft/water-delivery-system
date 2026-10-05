@@ -1,3 +1,4 @@
+import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 export default function Layout() {
@@ -13,34 +14,23 @@ export default function Layout() {
   }
 
   return (
-    <nav className="nav">
-      <a href="/">Home</a>
-      {' '}
-
-      <a href="/products">Products</a>
-      {' '}
-
-      <a href="/customer">Customer</a>
-      {' '}
-
-      <a href="/rider">Rider</a>
-      {' '}
-
-      <a href="/admin">Admin</a>
-      {' '}
-
-      <a href="/account">My Account</a>
-      {' '}
-
-      <a href="/login">Log in</a>
-      {' '}
-
-      <a href="/register">Register</a>
-      {' '}
-
-      <button type="button" onClick={handleLogout}>
-        Logout
-      </button>
-    </nav>
+    <>
+      <nav className="nav">
+        <NavLink to="/">Home</NavLink>
+        <NavLink to="/products">Products</NavLink>
+        <NavLink to="/customer">Customer</NavLink>
+        <NavLink to="/rider">Rider</NavLink>
+        <NavLink to="/admin">Admin</NavLink>
+        <NavLink to="/account">My Account</NavLink>
+        <NavLink to="/login">Log in</NavLink>
+        <NavLink to="/register">Register</NavLink>
+        <button type="button" onClick={handleLogout}>
+          Logout
+        </button>
+      </nav>
+      <main className="main">
+        <Outlet />
+      </main>
+    </>
   )
 }
