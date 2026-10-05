@@ -7,7 +7,9 @@ A web and mobile app where customers order water refills, pick a delivery slot, 
 ## Branches
 
 * `main` holds reviewed, merged work only.
-* Work on a feature branch named after its Jira issue, for example `feature/SCRUM-19-register`, and merge it through a reviewed pull request.
+* Work on a feature branch named after its GitHub issue number, for example `feature/12-role-based-access`, and merge it through a reviewed pull request.
+* Write `Closes #12` in the pull request description so the issue closes and its card moves to Done on the [project board](https://github.com/orgs/avatar-cssoft/projects/1) when the pull request merges.
+* Older branches and commits use Jira keys (`SCRUM-19`). Each GitHub issue lists its old Jira key at the bottom.
 
 ## Tech stack
 
