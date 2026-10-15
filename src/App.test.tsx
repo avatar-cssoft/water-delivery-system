@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Product } from './lib/api/products'
 import App from './App'
@@ -19,6 +19,9 @@ vi.mock('./lib/api/products', async (importOriginal) => {
   }
 })
 
+// The nav's auth listener, captured so tests can sign in or out without a reload.
+let authChange: (event: string) => void = () => {}
+
 // Pages that query Supabase directly get an empty result.
 vi.mock('./lib/supabase', () => {
   const query = {
@@ -28,7 +31,13 @@ vi.mock('./lib/supabase', () => {
   return {
     supabase: {
       from: () => query,
-      auth: { signOut: () => Promise.resolve({ error: null }) },
+      auth: {
+        signOut: () => Promise.resolve({ error: null }),
+        onAuthStateChange: (callback: (event: string) => void) => {
+          authChange = callback
+          return { data: { subscription: { unsubscribe: () => {} } } }
+        },
+      },
     },
   }
 })
@@ -119,6 +128,31 @@ describe('Nav links by role', () => {
     renderAt('/')
     expect(await navLinks()).toEqual(['Home', 'Products', page, 'My Account'])
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument()
+  })
+
+  it('switches to the signed-in links after signing in without a reload', async () => {
+    renderAt('/register')
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Log in', 'Register'])
+
+    getCurrentUserRole.mockResolvedValue('user')
+    act(() => authChange('SIGNED_IN'))
+
+    const nav = screen.getByRole('navigation')
+    expect(await within(nav).findByRole('link', { name: 'My Account' })).toBeInTheDocument()
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Customer', 'My Account'])
+  })
+
+  it('switches back to the guest links after signing out elsewhere', async () => {
+    getCurrentUserRole.mockResolvedValue('admin')
+    renderAt('/')
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Admin', 'My Account'])
+
+    getCurrentUserRole.mockResolvedValue(null)
+    act(() => authChange('SIGNED_OUT'))
+
+    const nav = screen.getByRole('navigation')
+    expect(await within(nav).findByRole('link', { name: 'Log in' })).toBeInTheDocument()
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Log in', 'Register'])
   })
 
   it('shows only My Account and Logout when the role can not be loaded', async () => {
