@@ -1,101 +1,133 @@
+
 import { useEffect, useState } from 'react'
 import {
-  applyProductChange,
-  formatPrice,
   getProducts,
   subscribeToProducts,
+  applyProductChange,
+  formatPrice,
   type Product,
   type ProductChange,
 } from '../../lib/api/products'
+import { addToCart } from '../../lib/cart'
+import { navigateTo } from '../../lib/navigation'
 
 export default function Catalog() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-    let loaded = false
-    // Changes that arrive before the first load finishes. They are applied on top
-    // of the loaded list, so a change is never lost to an older snapshot.
-    let pending: ProductChange[] = []
+    let active = true
+    const pendingChanges: ProductChange[] = []
+    const loadingRef = { current: true }
 
-    // Live updates: products added, edited, or deleted elsewhere show up here.
-    const unsubscribe = subscribeToProducts((change) => {
-      if (cancelled) return
-      if (loaded) {
-        setProducts((current) => applyProductChange(current, change))
+    const subscription = subscribeToProducts((change) => {
+      if (!active) return
+
+      if (loadingRef.current) {
+        pendingChanges.push(change)
       } else {
-        pending.push(change)
+        setProducts((current) =>
+          applyProductChange(current, change),
+        )
       }
     })
 
-    getProducts()
-      .then((data) => {
-        if (cancelled) return
-        setProducts(pending.reduce(applyProductChange, data))
-        pending = []
-        loaded = true
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load products.')
+    async function loadProducts() {
+      try {
+        const result = await getProducts()
+
+        if (!active) return
+
+        const updated = pendingChanges.reduce(
+          (current, change) =>
+            applyProductChange(current, change),
+          result,
+        )
+
+        setProducts(updated)
+        setError(null)
+      } catch {
+        if (active) {
+          setError('Unable to load products. Please try again.')
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+      } finally {
+        loadingRef.current = false
+
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadProducts()
 
     return () => {
-      cancelled = true
-      unsubscribe()
+      active = false
+      subscription()
     }
   }, [])
 
-  if (loading) {
-    return <p>Loading products...</p>
+  function goToCustomerHome() {
+    navigateTo('/customerHome')
   }
 
-  if (error) {
-    return <p role="alert">{error}</p>
+  function goToCart() {
+    navigateTo('/cart')
+  }
+
+  function handleAddToCart(product: Product) {
+    addToCart(product)
+    navigateTo('/cart')
   }
 
   return (
-    <section>
-      <h1>Products</h1>
+    <main>
+      <h1>Shop Water Products</h1>
 
-      {products.length === 0 ? (
+      <nav>
+        <button type="button" onClick={goToCustomerHome}>
+          Back to Customer Home
+        </button>
+
+        <button type="button" onClick={goToCart}>
+          View Cart
+        </button>
+      </nav>
+
+      {loading ? (
+        <p>Loading products...</p>
+      ) : error ? (
+        <p role="alert">{error}</p>
+      ) : products.length === 0 ? (
         <p>No products available yet.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th scope="col">Product</th>
-              <th scope="col">Size</th>
-              <th scope="col">Price</th>
-              <th scope="col">Availability</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product.id}>
-                <td>
-                  {product.name}
-                  {product.description && (
-                    <>
-                      <br />
-                      <small>{product.description}</small>
-                    </>
-                  )}
-                </td>
-                <td>{product.containerSize}</td>
-                <td>{formatPrice(product.price)}</td>
-                <td>{product.available ? 'In stock' : 'Out of stock'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="product-list">
+          {products.map((product) => (
+            <article key={product.id}>
+              <h2>{product.name}</h2>
+
+              <p>Size: {product.containerSize}</p>
+
+              {product.description && (
+                <p>{product.description}</p>
+              )}
+
+              <p>Price: {formatPrice(product.price)}</p>
+
+              <p>Stock: {product.stock}</p>
+
+              <button
+                type="button"
+                disabled={!product.available || product.stock <= 0}
+                onClick={() => handleAddToCart(product)}
+              >
+                Add to Cart
+              </button>
+            </article>
+          ))}
+        </div>
       )}
-    </section>
+    </main>
   )
 }
