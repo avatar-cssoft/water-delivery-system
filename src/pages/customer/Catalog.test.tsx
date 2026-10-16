@@ -1,3 +1,4 @@
+
 import { act, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Product, ProductChange } from '../../lib/api/products'
@@ -5,11 +6,13 @@ import Catalog from './Catalog'
 
 const getProducts = vi.fn<() => Promise<Product[]>>()
 const unsubscribe = vi.fn()
-// The catalog's realtime listener, captured so tests can push changes into it.
+
 let pushChange: (change: ProductChange) => void = () => {}
 
 vi.mock('../../lib/api/products', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../lib/api/products')>()
+  const actual =
+    await importOriginal<typeof import('../../lib/api/products')>()
+
   return {
     ...actual,
     getProducts: () => getProducts(),
@@ -52,10 +55,14 @@ const products: Product[] = [
   },
 ]
 
-function rowFor(name: string) {
-  const row = screen.getByText(name).closest('tr')
-  if (!row) throw new Error(`No row for ${name}`)
-  return within(row)
+function cardFor(name: string) {
+  const card = screen.getByRole('heading', { name }).closest('article')
+
+  if (!card) {
+    throw new Error(`No product card for ${name}`)
+  }
+
+  return within(card)
 }
 
 describe('Catalog', () => {
@@ -63,35 +70,42 @@ describe('Catalog', () => {
     getProducts.mockReset()
   })
 
-  it('shows each product with its name, price, and availability', async () => {
+  it('shows each product with its name, price, and stock', async () => {
     getProducts.mockResolvedValue(products)
 
     render(<Catalog />)
 
-    expect(await screen.findByRole('heading', { name: 'Products' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Shop Water Products' }),
+    ).toBeInTheDocument()
 
-    const round = rowFor('Round gallon refill')
-    expect(round.getByText('₱30.00')).toBeInTheDocument()
-    expect(round.getByText('In stock')).toBeInTheDocument()
+    const round = cardFor('Round gallon refill')
+    expect(round.getByText('Price: ₱30.00')).toBeInTheDocument()
+    expect(round.getByText('Stock: 12')).toBeInTheDocument()
 
-    const slim = rowFor('Slim gallon refill')
-    expect(slim.getByText('₱35.00')).toBeInTheDocument()
-    expect(slim.getByText('Out of stock')).toBeInTheDocument()
+    const slim = cardFor('Slim gallon refill')
+    expect(slim.getByText('Price: ₱35.00')).toBeInTheDocument()
+    expect(slim.getByText('Stock: 0')).toBeInTheDocument()
+    expect(
+      slim.getByRole('button', { name: 'Add to Cart' }),
+    ).toBeDisabled()
 
-    const container = rowFor('New round container')
-    expect(container.getByText('₱250.00')).toBeInTheDocument()
-    expect(container.getByText('In stock')).toBeInTheDocument()
-    expect(container.getByText('Includes the first refill')).toBeInTheDocument()
+    const container = cardFor('New round container')
+    expect(container.getByText('Price: ₱250.00')).toBeInTheDocument()
+    expect(container.getByText('Stock: 3')).toBeInTheDocument()
+    expect(
+      container.getByText('Includes the first refill'),
+    ).toBeInTheDocument()
   })
 
-  it('shows one row per product', async () => {
+  it('shows one card per product', async () => {
     getProducts.mockResolvedValue(products)
 
     render(<Catalog />)
 
-    await screen.findByRole('table')
-    // 1 header row + 3 product rows
-    expect(screen.getAllByRole('row')).toHaveLength(4)
+    await screen.findByRole('heading', { name: 'Round gallon refill' })
+
+    expect(screen.getAllByRole('article')).toHaveLength(3)
   })
 
   it('shows a loading message while products load', () => {
@@ -107,16 +121,21 @@ describe('Catalog', () => {
 
     render(<Catalog />)
 
-    expect(await screen.findByText('No products available yet.')).toBeInTheDocument()
-    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(
+      await screen.findByText('No products available yet.'),
+    ).toBeInTheDocument()
+
+    expect(screen.queryAllByRole('article')).toHaveLength(0)
   })
 
-  it('shows the error when products fail to load', async () => {
+  it('shows an error when products fail to load', async () => {
     getProducts.mockRejectedValue(new Error('permission denied'))
 
     render(<Catalog />)
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('permission denied')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load products. Please try again.',
+    )
   })
 })
 
@@ -129,7 +148,9 @@ describe('Catalog live updates', () => {
 
   it('shows a product added elsewhere without a refresh', async () => {
     getProducts.mockResolvedValue([])
+
     render(<Catalog />)
+
     await screen.findByText('No products available yet.')
 
     act(() => {
@@ -147,15 +168,17 @@ describe('Catalog live updates', () => {
       })
     })
 
-    const row = rowFor('Slim container')
-    expect(row.getByText('₱240.00')).toBeInTheDocument()
-    expect(row.getByText('In stock')).toBeInTheDocument()
+    const card = cardFor('Slim container')
+    expect(card.getByText('Price: ₱240.00')).toBeInTheDocument()
+    expect(card.getByText('Stock: 5')).toBeInTheDocument()
   })
 
-  it('updates price and availability when a product is edited', async () => {
+  it('updates price and stock when a product is edited', async () => {
     getProducts.mockResolvedValue(products)
+
     render(<Catalog />)
-    await screen.findByRole('table')
+
+    await screen.findByRole('heading', { name: 'Round gallon refill' })
 
     act(() => {
       pushChange({
@@ -164,45 +187,70 @@ describe('Catalog live updates', () => {
       })
     })
 
-    const round = rowFor('Round gallon refill')
-    expect(round.getByText('₱32.00')).toBeInTheDocument()
-    expect(round.getByText('Out of stock')).toBeInTheDocument()
-    expect(screen.getAllByRole('row')).toHaveLength(4)
+    const round = cardFor('Round gallon refill')
+    expect(round.getByText('Price: ₱32.00')).toBeInTheDocument()
+    expect(round.getByText('Stock: 0')).toBeInTheDocument()
+    expect(
+      round.getByRole('button', { name: 'Add to Cart' }),
+    ).toBeDisabled()
+
+    expect(screen.getAllByRole('article')).toHaveLength(3)
   })
 
   it('removes a deleted product', async () => {
     getProducts.mockResolvedValue(products)
+
     render(<Catalog />)
-    await screen.findByRole('table')
+
+    await screen.findByRole('heading', { name: 'Round gallon refill' })
 
     act(() => {
       pushChange({ type: 'delete', id: 2 })
     })
 
-    expect(screen.queryByText('Slim gallon refill')).not.toBeInTheDocument()
-    expect(screen.getAllByRole('row')).toHaveLength(3)
+    expect(
+      screen.queryByRole('heading', { name: 'Slim gallon refill' }),
+    ).not.toBeInTheDocument()
+
+    expect(screen.getAllByRole('article')).toHaveLength(2)
   })
 
   it('keeps a change that arrives while the first load is still running', async () => {
     let finishLoading: (data: Product[]) => void = () => {}
-    getProducts.mockReturnValue(new Promise((resolve) => (finishLoading = resolve)))
+
+    getProducts.mockReturnValue(
+      new Promise((resolve) => {
+        finishLoading = resolve
+      }),
+    )
+
     render(<Catalog />)
 
-    // The change arrives first; the (older) list loads after it.
     act(() => {
-      pushChange({ type: 'upsert', product: { ...products[1], stock: 8, available: true } })
+      pushChange({
+        type: 'upsert',
+        product: { ...products[1], stock: 8, available: true },
+      })
     })
+
     await act(async () => {
       finishLoading(products)
     })
 
-    expect(rowFor('Slim gallon refill').getByText('In stock')).toBeInTheDocument()
+    expect(cardFor('Slim gallon refill').getByText('Stock: 8')).toBeInTheDocument()
+    expect(
+      cardFor('Slim gallon refill').getByRole('button', {
+        name: 'Add to Cart',
+      }),
+    ).toBeEnabled()
   })
 
   it('stops listening when the page is closed', async () => {
     getProducts.mockResolvedValue(products)
+
     const { unmount } = render(<Catalog />)
-    await screen.findByRole('table')
+
+    await screen.findByRole('heading', { name: 'Round gallon refill' })
 
     unmount()
 
