@@ -243,7 +243,7 @@ function Register() {
       </form>
 
       <p>
-        Already have an account? <a href="/">Login</a>
+        Already have an account? <a href="/login">Login</a>
       </p>
     </div>
   )

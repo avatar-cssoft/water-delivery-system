@@ -1,4 +1,7 @@
-
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import Layout from './components/Layout'
+import Home from './pages/Home'
+import NotFound from './pages/NotFound'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import UserAccounts from './pages/users/UserAccount'
@@ -16,56 +19,37 @@ import Catalog from './pages/customer/Catalog'
 import Cart from './pages/customer/Cart'
 import Checkout from './pages/customer/Checkout'
 
-function App() {
-  const path = window.location.pathname
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
+          <Route path="account" element={<UserAccounts />} />
 
-  if (path === '/register') {
-    return <Register />
-  }
+          <Route path="customerHome" element={<CustomerHome />} />
+          <Route path="catalog" element={<Catalog />} />
+          <Route path="cart" element={<Cart />} />
+          <Route path="checkout" element={<Checkout />} />
 
-  if (path === '/account') {
-    return <UserAccounts />
-  }
+          <Route path="employee" element={<EmployeeHome />} />
 
-  if (path === '/customerHome') {
-    return <CustomerHome />
-  }
+          <Route path="admin" element={<Admin />} />
+          <Route path="admin/products" element={<Products />} />
+          <Route path="admin/employees" element={<Employee />} />
+          <Route path="admin/employees/add" element={<AddEmployee />} />
+          <Route path="admin/employees/edit" element={<EditEmployee />} />
 
-  if (path === '/catalog') {
-    return <Catalog />
-  }
+          {/* Old paths, kept so existing links and bookmarks still work. */}
+          <Route path="products" element={<Navigate to="/catalog" replace />} />
+          <Route path="customer" element={<Navigate to="/customerHome" replace />} />
+          <Route path="rider" element={<Navigate to="/employee" replace />} />
 
-  if (path === '/cart') {
-    return <Cart />
-  }
-
-  if (path === '/admin') {
-    return <Admin />
-  }
-
-  if (path === '/admin/products') {
-    return <Products />
-  }
-
-  if (path === '/admin/employees') {
-    return <Employee />
-  }
-
-  if (path === '/admin/employees/add') {
-    return <AddEmployee />
-  }
-
-  if (path === '/admin/employees/edit') {
-    return <EditEmployee />
-  }
-
-  if (path === '/employee') {
-    return <EmployeeHome />
-  }
-  if (path === '/checkout') {
-    return <Checkout />
-  }
-  return <Login />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
 }
-
-export default App
