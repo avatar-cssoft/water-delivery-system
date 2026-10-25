@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getCart, clearCart } from '../../lib/cart'
 import { formatPrice } from '../../lib/api/products'
@@ -15,6 +15,40 @@ export default function Checkout() {
     (sum, item) => sum + item.product.price * item.quantity,
     0,
   )
+
+  // Start with the address saved on the customer's profile. They can still
+  // change it for this order; the profile itself isn't updated.
+  useEffect(() => {
+    let cancelled = false
+
+    const loadSavedAddress = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) return
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('address')
+        .eq('id', user.id)
+        .single()
+
+      const saved = (data as { address: string | null } | null)?.address
+
+      // Don't replace anything the customer typed while this was loading.
+      if (!cancelled && saved) {
+        setAddress((current) => current || saved)
+      }
+    }
+
+    // Pre-filling is only a convenience, so a failure leaves the box empty.
+    loadSavedAddress().catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function placeOrder() {
     if (cart.length === 0) {
