@@ -14,7 +14,7 @@ function Admin() {
         const role = await getCurrentUserRole()
 
         if (role === null) {
-          window.location.href = '/'
+          window.location.href = '/login'
           return
         }
 
@@ -90,7 +90,7 @@ function Admin() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = '/'
+            window.location.href = '/login'
           }}
         >
           Back to Login
