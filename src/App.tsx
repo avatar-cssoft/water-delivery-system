@@ -2,15 +2,19 @@
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import UserAccounts from './pages/users/UserAccount'
-//admin imports
+
+// Admin imports
 import Admin from './pages/admin/admin'
 import Products from './pages/admin/products'
-//employee imports
 import Employee from './pages/admin/EmployeeManagement/Employee'
 import AddEmployee from './pages/admin/EmployeeManagement/AddEmployee'
 import EditEmployee from './pages/admin/EmployeeManagement/EditEmployee'
+
+// Employee imports
 import EmployeeHome from './pages/employees/Employee'
-//user imports
+import Orders from './pages/employees/Orders'
+
+// Customer imports
 import CustomerHome from './pages/customer/CustomerHome'
 import Catalog from './pages/customer/Catalog'
 import Cart from './pages/customer/Cart'
@@ -39,6 +43,10 @@ function App() {
     return <Cart />
   }
 
+  if (path === '/checkout') {
+    return <Checkout />
+  }
+
   if (path === '/admin') {
     return <Admin />
   }
@@ -62,9 +70,11 @@ function App() {
   if (path === '/employee') {
     return <EmployeeHome />
   }
-  if (path === '/checkout') {
-    return <Checkout />
+
+  if (path === '/employee/orders') {
+    return <Orders />
   }
+
   return <Login />
 }
 

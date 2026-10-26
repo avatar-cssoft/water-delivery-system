@@ -41,7 +41,7 @@ function Login() {
     if (profile.role === 'admin') {
       window.location.href = '/admin'
     } else if (profile.role === 'employee') {
-      window.location.href = '/employee'
+      window.location.href = '/Employee'
     } else {
       window.location.href = '/customerHome'
     }
