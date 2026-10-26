@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
@@ -7,6 +8,7 @@ type Profile = {
   middle_initial: string | null
   address: string
   phone: string
+  role: string
 }
 
 function UserAccounts() {
@@ -18,36 +20,43 @@ function UserAccounts() {
     const getProfile = async () => {
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser()
+
+      if (userError) {
+        setError(userError.message)
+        setLoading(false)
+        return
+      }
 
       if (!user) {
         window.location.href = '/'
         return
       }
 
-      const { data, error } = await supabase
+      const { data, error: profileError } = await supabase
         .from('profiles')
-        .select('first_name, last_name, middle_initial, address, phone')
+        .select('first_name, last_name, middle_initial, address, phone, role')
         .eq('id', user.id)
         .single()
 
-      if (error) {
-        setError(error.message)
+      if (profileError) {
+        setError(profileError.message)
       } else {
-        setProfile(data)
+        setProfile(data as Profile)
       }
 
       setLoading(false)
     }
 
-    getProfile()
+    void getProfile()
   }, [])
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut()
+    const { error: logoutError } = await supabase.auth.signOut()
 
-    if (error) {
-      setError(error.message)
+    if (logoutError) {
+      setError(logoutError.message)
       return
     }
 
@@ -59,7 +68,7 @@ function UserAccounts() {
   }
 
   if (error) {
-    return <p>{error}</p>
+    return <p>Error: {error}</p>
   }
 
   if (!profile) {
@@ -72,7 +81,9 @@ function UserAccounts() {
 
       <p>
         <strong>Name:</strong>{' '}
-        {profile.first_name} {profile.middle_initial} {profile.last_name}
+        {profile.first_name}{' '}
+        {profile.middle_initial ? `${profile.middle_initial} ` : ''}
+        {profile.last_name}
       </p>
 
       <p>
@@ -81,6 +92,10 @@ function UserAccounts() {
 
       <p>
         <strong>Phone:</strong> {profile.phone}
+      </p>
+
+      <p>
+        <strong>Role:</strong> {profile.role}
       </p>
 
       <br />
@@ -93,4 +108,3 @@ function UserAccounts() {
 }
 
 export default UserAccounts
-

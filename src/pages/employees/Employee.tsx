@@ -54,15 +54,12 @@ function EmployeeHome() {
     <div>
       <h1>Employee Dashboard</h1>
 
-      <p>
-        <strong>Name:</strong>{' '}
-        {employee.first_name} {employee.last_name}
-      </p>
+      <h2>Orders</h2>
+      <p>Manage customer orders and deliveries here.</p>
 
-      <p>
-        <strong>Department:</strong>{' '}
-        {employee.department || 'Not assigned'}
-      </p>
+      <button onClick={() => (window.location.href = '/employee/orders')}>
+        View Orders
+      </button>
     </div>
   )
 }
