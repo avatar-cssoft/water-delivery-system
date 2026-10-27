@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react'
+import { getCurrentUserRole } from '../../lib/api/auth'
 import { supabase } from '../../lib/supabase'
 
 type Order = {
@@ -20,6 +21,10 @@ const statusOptions = [
   'cancelled',
 ]
 
+// Staff who may manage orders. Login.tsx and the profiles table use
+// 'employee'; src/types uses 'rider'.
+const staffRoles = ['employee', 'rider', 'admin']
+
 function Orders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -27,8 +32,33 @@ function Orders() {
   const [message, setMessage] = useState('')
   const [updatingId, setUpdatingId] = useState<number | null>(null)
 
+  // Only staff see this page. This only hides it: orders still need RLS in
+  // the database to stop other users from reading or changing them.
   useEffect(() => {
-    void loadOrders()
+    const checkStaff = async () => {
+      let role: string | null
+
+      try {
+        role = await getCurrentUserRole()
+      } catch {
+        window.location.href = '/'
+        return
+      }
+
+      if (role === null) {
+        window.location.href = '/login'
+        return
+      }
+
+      if (!staffRoles.includes(role)) {
+        window.location.href = '/'
+        return
+      }
+
+      void loadOrders()
+    }
+
+    void checkStaff()
   }, [])
 
   async function loadOrders() {
