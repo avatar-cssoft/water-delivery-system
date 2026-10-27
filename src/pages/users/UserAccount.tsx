@@ -30,7 +30,7 @@ function UserAccounts() {
       }
 
       if (!user) {
-        window.location.href = '/'
+        window.location.href = '/login'
         return
       }
 

@@ -4,11 +4,16 @@ CSSOFT1 Software Engineering 1 project by Team Avatar (BSCS IAB1, University of 
 
 A web and mobile app where customers order water refills, pick a delivery slot, pay by cash or e-wallet, and track their order. Riders get a daily delivery list, and admins manage stock, prices, containers, and reports. The AI feature is an agentic workflow using Small Language Models (SLMs) for chat ordering and dispatch suggestions.
 
+## Sprint
 | Sprint | Goal / Focus | Status | Dates |
 | :--- | :--- | :--- | :--- |
 | **Sprint 1** | User authentication & database setup | ✅ Completed | Sept 7 - Oct 14 2026 |
 | **Sprint 2** | Dashboard UI and API integration | 🚧 In Progress | Oct 15 - Oct 23, 2026 |
 | **Sprint 3** | -------------------------------- | 📅 Upcoming | --- |
+
+## DataBase Diagram
+<img width="838" height="579" alt="image" src="https://github.com/user-attachments/assets/a5dc3506-085f-44db-90d6-b33212626ed7" />
+
 
 ## Branches
 
