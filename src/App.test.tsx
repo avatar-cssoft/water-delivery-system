@@ -65,6 +65,10 @@ function mainNav() {
   return screen.getByRole('navigation', { name: 'Main' })
 }
 
+function footerNav() {
+  return screen.getByRole('navigation', { name: 'Footer' })
+}
+
 beforeEach(() => {
   localStorage.clear()
   getProducts.mockReset()
@@ -101,7 +105,15 @@ describe('App routes (signed-out guest)', () => {
   ])('shows %s inside the layout', (path, heading) => {
     renderAt(path)
     expect(mainNav()).toBeInTheDocument()
+    expect(footerNav()).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
+  })
+
+  it('shows footer navigation and copyright', () => {
+    renderAt('/employee/orders')
+    expect(within(footerNav()).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
+    expect(within(footerNav()).getByRole('link', { name: 'Products' })).toHaveAttribute('href', '/catalog')
+    expect(screen.getByText(`© ${new Date().getFullYear()} Water Delivery`)).toBeInTheDocument()
   })
 
   it.each(['/account', '/employee', '/employee/orders', '/admin','/admin/employees', '/admin/employees/add', '/admin/employees/edit'])(
