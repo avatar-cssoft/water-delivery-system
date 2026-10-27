@@ -104,7 +104,7 @@ describe('App routes (signed-out guest)', () => {
     expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
   })
 
-  it.each(['/account', '/employee', '/admin', '/admin/employees', '/admin/employees/add', '/admin/employees/edit'])(
+  it.each(['/account', '/employee', '/employee/orders', '/admin','/admin/employees', '/admin/employees/add', '/admin/employees/edit'])(
     'routes %s to a page (not "Page not found")',
     (path) => {
       renderAt(path)
