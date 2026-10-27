@@ -118,7 +118,7 @@ function Admin() {
 
       <h3>Admin Controls</h3>
 
-      <div>
+      <div className="admin-controls">
         <button
           type="button"
           onClick={() => {

@@ -30,7 +30,7 @@ export default function Layout() {
 
   // Hiding a link only tidies the nav; pages still check access themselves.
   return (
-    <>
+    <div className="app-shell">
       <header className="site-header">
         <nav className="site-nav" aria-label="Main">
 
@@ -67,6 +67,15 @@ export default function Layout() {
       <div className="main">
         <Outlet />
       </div>
-    </>
+      <footer className="site-footer">
+        <div className="site-footer-content">
+          <span>© {new Date().getFullYear()} Water Delivery</span>
+          <nav aria-label="Footer">
+            <NavLink to={homePath}>Home</NavLink>
+            <NavLink to="/catalog">Products</NavLink>
+          </nav>
+        </div>
+      </footer>
+    </div>
   )
 }

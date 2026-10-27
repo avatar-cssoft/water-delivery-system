@@ -180,7 +180,7 @@ function Orders() {
           <div style={{ overflowX: 'auto' }}>
             <table style={tableStyle}>
               <thead>
-                <tr style={{ backgroundColor: '#e5e7eb' }}>
+                <tr style={{ backgroundColor: 'var(--surface)' }}>
                   <th style={cellStyle}>Order ID</th>
                   <th style={cellStyle}>Customer ID</th>
                   <th style={cellStyle}>Order Date</th>
@@ -243,7 +243,7 @@ function Orders() {
 const pageStyle: React.CSSProperties = {
   padding: '24px',
   fontFamily: 'Arial, sans-serif',
-  color: '#1f2937',
+  color: 'var(--text)',
 }
 
 const actionsStyle: React.CSSProperties = {
@@ -256,28 +256,32 @@ const actionsStyle: React.CSSProperties = {
 const buttonStyle: React.CSSProperties = {
   padding: '10px 16px',
   cursor: 'pointer',
-  border: '1px solid #d1d5db',
+  border: '1px solid var(--accent)',
   borderRadius: '5px',
-  backgroundColor: '#f9fafb',
+  backgroundColor: 'var(--accent)',
+  color: 'var(--button-text)',
 }
 
 const tableStyle: React.CSSProperties = {
   width: '100%',
   minWidth: '850px',
   borderCollapse: 'collapse',
+  backgroundColor: 'var(--card)',
 }
 
 const cellStyle: React.CSSProperties = {
-  border: '1px solid #d1d5db',
+  border: '1px solid var(--border)',
   padding: '10px',
   textAlign: 'left',
+  color: 'var(--text)',
 }
 
 const selectStyle: React.CSSProperties = {
   padding: '8px',
   borderRadius: '5px',
-  border: '1px solid #d1d5db',
-  backgroundColor: '#fff',
+  border: '1px solid var(--border)',
+  backgroundColor: 'var(--surface)',
+  color: 'var(--text)',
   cursor: 'pointer',
 }
 
