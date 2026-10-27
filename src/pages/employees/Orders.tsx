@@ -61,10 +61,7 @@ function Orders() {
         console.error('Could not check staff role:', err)
 
         if (!cancelled) {
-          setError(
-            'Could not verify your account role. Please log in again.',
-          )
-          setLoading(false)
+          window.location.href = '/'
         }
       }
     }
