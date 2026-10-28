@@ -291,6 +291,55 @@ body {
   gap: 6px;
 }
 
+.profile-details {
+  display: grid;
+  gap: 4px;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.main .profile-details p {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 3%);
+  color: #b7c2ca;
+  cursor: default;
+}
+
+.main .profile-details strong {
+  color: #d3dce2;
+}
+
+.profile-details button {
+  justify-self: start;
+  margin-top: 12px;
+}
+
+.profile-edit-actions {
+  margin-top: 20px;
+}
+
+.profile-edit-actions-content {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.main .profile-edit-actions .discard-button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.main .profile-edit-actions .discard-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
 .main form label,
 .main > div > label,
 .main > main > label {
@@ -323,6 +372,52 @@ body {
   color: #82939f;
 }
 
+.address-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.main input.profile-readonly-address {
+  border-color: var(--border);
+  background: #202b34;
+  color: #b7c2ca;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.address-input-row input {
+  min-width: 0;
+  flex: 1;
+}
+
+.address-input-row a {
+  white-space: nowrap;
+}
+
+.address-logbook-disabled {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.main .address-logbook-link {
+  display: inline-flex;
+  min-height: 40px;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.main .address-logbook-link:hover {
+  background: var(--accent);
+  color: var(--button-text);
+}
+
 .main input[aria-invalid='true'],
 .main textarea[aria-invalid='true'] {
   border-color: var(--danger);
@@ -335,6 +430,10 @@ body {
 
 .main [role='status'] {
   color: var(--success);
+}
+
+.main .profile-save-notice {
+  color: var(--danger);
 }
 
 .main article {
