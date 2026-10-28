@@ -61,7 +61,7 @@ describe('UserAccounts profile editing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit Profile' }))
     expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
-    expect(screen.getByRole('link', { name: 'Address Logbook' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Manage Addresses' })).toHaveAttribute(
       'href',
       '/account/address-logbook',
     )
@@ -82,7 +82,7 @@ describe('UserAccounts profile editing', () => {
     fireEvent.change(screen.getByLabelText('First Name'), {
       target: { value: 'Janet' },
     })
-    expect(screen.queryByRole('link', { name: 'Address Logbook' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Manage Addresses' })).not.toBeInTheDocument()
     expect(screen.getByText('Save changes to open Address Logbook')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Discard' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeEnabled()
@@ -112,7 +112,7 @@ describe('UserAccounts profile editing', () => {
     fireEvent.change(screen.getByLabelText('Middle Initial'), {
       target: { value: 'B' },
     })
-    expect(screen.getByRole('link', { name: 'Address Logbook' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Manage Addresses' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Discard' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
 
