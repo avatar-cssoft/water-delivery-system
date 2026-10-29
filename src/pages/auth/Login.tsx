@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { appPath } from '../../lib/navigation'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -39,11 +40,11 @@ function Login() {
     }
 
     if (profile.role === 'admin') {
-      window.location.href = '/admin'
+      window.location.href = appPath('/admin')
     } else if (profile.role === 'employee') {
-      window.location.href = '/employee'
+      window.location.href = appPath('/employee')
     } else {
-      window.location.href = '/customerHome'
+      window.location.href = appPath('/customerHome')
     }
   }
 
@@ -108,7 +109,7 @@ function Login() {
 
       <p>
         Don't have an account?{' '}
-        <a href="/register">Register</a>
+        <a href={appPath('/register')}>Register</a>
       </p>
     </div>
   )

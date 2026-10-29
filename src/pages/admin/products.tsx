@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { appPath } from '../../lib/navigation'
 
 type Product = {
   id: number
@@ -178,7 +179,7 @@ function Products() {
 
       <h2>Products</h2>
 
-      <button onClick={() => (window.location.href = '/admin')}>
+      <button onClick={() => (window.location.href = appPath('/admin'))}>
         Back to Admin Dashboard
       </button>
 
