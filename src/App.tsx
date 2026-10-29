@@ -5,6 +5,7 @@ import Home from './pages/Home'
 import NotFound from './pages/NotFound'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import AddressLogbook from './pages/users/AddressLogbook'
 import UserAccounts from './pages/users/UserAccount'
 
 // Admin imports
@@ -33,7 +34,12 @@ export default function App() {
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+
+          {/* User account */}
           <Route path="account" element={<UserAccounts />} />
+          <Route path="account/address-logbook" element={<AddressLogbook />} />
+
+          {/* Will add settings page later */}
 
           {/* Customer routes */}
           <Route path="customerHome" element={<CustomerHome />} />
