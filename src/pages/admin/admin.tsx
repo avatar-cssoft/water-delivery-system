@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { getCurrentUserRole } from '../../lib/api/auth'
 import { supabase } from '../../lib/supabase'
+import { appPath } from '../../lib/navigation'
 
 function Admin() {
   const [name, setName] = useState('')
@@ -14,12 +15,12 @@ function Admin() {
         const role = await getCurrentUserRole()
 
         if (role === null) {
-          window.location.href = '/login'
+          window.location.href = appPath('/login')
           return
         }
 
         if (role !== 'admin') {
-          window.location.href = '/'
+          window.location.href = appPath('/')
           return
         }
 
@@ -29,7 +30,7 @@ function Admin() {
         } = await supabase.auth.getUser()
 
         if (userError || !user) {
-          window.location.href = '/'
+          window.location.href = appPath('/')
           return
         }
 
@@ -73,7 +74,7 @@ function Admin() {
       return
     }
 
-    window.location.href = '/'
+    window.location.href = appPath('/')
   }
 
   if (loading) {
@@ -90,7 +91,7 @@ function Admin() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = '/login'
+            window.location.href = appPath('/login')
           }}
         >
           Back to Login
@@ -123,7 +124,7 @@ function Admin() {
           type="button"
           onClick={() => {
             window.location.href =
-              '/admin/products'
+              appPath('/admin/products')
           }}
         >
           Products
@@ -133,7 +134,7 @@ function Admin() {
           type="button"
           onClick={() => {
             window.location.href =
-              '/admin/employees'
+              appPath('/admin/employees')
           }}
         >
           Employees
@@ -143,7 +144,7 @@ function Admin() {
           type="button"
           onClick={() => {
             window.location.href =
-              '/admin/users'
+              appPath('/admin/users')
           }}
         >
           Users
@@ -153,7 +154,7 @@ function Admin() {
           type="button"
           onClick={() => {
             window.location.href =
-              '/admin/orders'
+              appPath('/admin/orders')
           }}
         >
           Orders
@@ -163,7 +164,7 @@ function Admin() {
           type="button"
           onClick={() => {
             window.location.href =
-              '/admin/ai'
+              appPath('/admin/ai')
           }}
         >
           AI Assistant

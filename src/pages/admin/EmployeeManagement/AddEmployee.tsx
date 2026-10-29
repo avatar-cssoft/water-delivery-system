@@ -12,6 +12,7 @@ import {
   type RegisterErrors,
   type RegisterInput,
 } from '../../../lib/validation/register'
+import { appPath } from '../../../lib/navigation'
 
 type Department = 'Management' | 'Delivery'
 
@@ -231,7 +232,7 @@ function AddEmployee() {
         type="button"
         onClick={() => {
           window.location.href =
-            '/admin/employees'
+            appPath('/admin/employees')
         }}
       >
         Back to Employees
@@ -450,7 +451,7 @@ function AddEmployee() {
           type="button"
           onClick={() => {
             window.location.href =
-              '/admin/employees'
+              appPath('/admin/employees')
           }}
           disabled={saving}
         >

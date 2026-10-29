@@ -27,7 +27,7 @@ import Checkout from './pages/customer/Checkout'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route element={<Layout />}>
           {/* Home and authentication */}

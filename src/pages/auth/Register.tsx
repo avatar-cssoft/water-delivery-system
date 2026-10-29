@@ -7,6 +7,7 @@ import {
   type RegisterErrors,
   type RegisterInput,
 } from '../../lib/validation/register'
+import { appPath } from '../../lib/navigation'
 
 const EMPTY: RegisterInput = {
   firstName: '',
@@ -243,7 +244,7 @@ function Register() {
       </form>
 
       <p>
-        Already have an account? <a href="/login">Login</a>
+        Already have an account? <a href={appPath('/login')}>Login</a>
       </p>
     </div>
   )

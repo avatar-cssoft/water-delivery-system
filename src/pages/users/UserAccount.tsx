@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LIMITS, normalizeMobile } from '../../lib/validation/register'
 import { supabase } from '../../lib/supabase'
+import { appPath } from '../../lib/navigation'
 
 type Profile = {
   id: string
@@ -40,7 +41,7 @@ function UserAccounts() {
       }
 
       if (!user) {
-        window.location.href = '/login'
+        window.location.href = appPath('/login')
         return
       }
 

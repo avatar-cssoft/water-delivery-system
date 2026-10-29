@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { appPath } from '../../../lib/navigation'
 
 type Employee = {
   id: string
@@ -90,7 +91,7 @@ function Employee() {
 
   useEffect(() => {
     if (redirect) {
-      window.location.href = '/'
+      window.location.href = appPath('/')
     }
   }, [redirect])
 
@@ -167,7 +168,7 @@ function Employee() {
         type="button"
         onClick={() => {
           window.location.href =
-            '/admin/employees/add'
+            appPath('/admin/employees/add')
         }}
       >
         Add Employee
@@ -231,7 +232,7 @@ function Employee() {
                     <button
                       type="button"
                       onClick={() => {
-                        window.location.href = `/admin/employees/edit?id=${employee.id}`
+                        window.location.href = appPath(`/admin/employees/edit?id=${employee.id}`)
                       }}
                     >
                       Edit
@@ -260,7 +261,7 @@ function Employee() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = '/admin'
+          window.location.href = appPath('/admin')
         }}
       >
         Back to Admin

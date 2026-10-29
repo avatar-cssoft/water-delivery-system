@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { supabase } from '../../lib/supabase'
+import { appPath } from '../../lib/navigation'
 
 type Employee = {
   first_name: string
@@ -19,7 +20,7 @@ function EmployeeHome() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        window.location.href = '/login'
+        window.location.href = appPath('/login')
         return
       }
 
@@ -31,7 +32,7 @@ function EmployeeHome() {
         .single()
 
       if (error || !data) {
-        window.location.href = '/'
+        window.location.href = appPath('/')
         return
       }
 
@@ -57,7 +58,7 @@ function EmployeeHome() {
       <h2>Orders</h2>
       <p>Manage customer orders and deliveries here.</p>
 
-      <button onClick={() => (window.location.href = '/employee/orders')}>
+      <button onClick={() => (window.location.href = appPath('/employee/orders'))}>
         View Orders
       </button>
     </div>

@@ -8,6 +8,7 @@ import {
   type ProductErrors,
   type ProductInput,
 } from '../../lib/validation/product'
+import { appPath } from '../../lib/navigation'
 
 const EMPTY: ProductInput = {
   name: '',
@@ -98,7 +99,7 @@ export default function AdminHome() {
       <section>
         <h1>Admin</h1>
         <p>
-          Please <a href="/login">log in</a> as an admin to manage products.
+          Please <a href={appPath('/login')}>log in</a> as an admin to manage products.
         </p>
       </section>
     )
@@ -219,7 +220,7 @@ export default function AdminHome() {
       </form>
 
       <p>
-         Please <a href="/login">log in</a> as an admin to manage products.
+         Please <a href={appPath('/login')}>log in</a> as an admin to manage products.
       </p>
     </section>
   )
