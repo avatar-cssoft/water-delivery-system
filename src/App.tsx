@@ -7,6 +7,8 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import AddressLogbook from './pages/users/AddressLogbook'
 import UserAccounts from './pages/users/UserAccount'
+import Settings from './pages/Settings'
+import Accessibility from './pages/Accessibility'
 
 // Admin imports
 import Admin from './pages/admin/admin'
@@ -39,7 +41,8 @@ export default function App() {
           <Route path="account" element={<UserAccounts />} />
           <Route path="account/address-logbook" element={<AddressLogbook />} />
 
-          {/* Will add settings page later */}
+          <Route path="settings" element={<Settings />} />
+          <Route path="accessibility" element={<Accessibility />} />
 
           {/* Customer routes */}
           <Route path="customerHome" element={<CustomerHome />} />

@@ -1,7 +1,7 @@
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LIMITS, normalizeMobile } from '../../lib/validation/register'
+import { LIMITS, normalizeMobile, validateName } from '../../lib/validation/register'
 import { supabase } from '../../lib/supabase'
 import { appPath } from '../../lib/navigation'
 
@@ -23,8 +23,13 @@ function UserAccounts() {
   const [formValues, setFormValues] = useState<ProfileForm | null>(null)
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0)
+  const isCoolingDown = cooldownSeconds > 0
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const saveLocked = useRef(false)
+  const cooldownEndsAt = useRef(0)
 
   // Load the signed-in user's profile.
   useEffect(() => {
@@ -63,18 +68,42 @@ function UserAccounts() {
     void getProfile()
   }, [])
 
+  useEffect(() => {
+    if (!isCoolingDown) {
+      saveLocked.current = false
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((cooldownEndsAt.current - Date.now()) / 1000),
+      )
+      setCooldownSeconds(remaining)
+      if (remaining === 0) {
+        saveLocked.current = false
+      }
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [isCoolingDown])
+
   // Editing Profile Functions
-  const MIDDLE_INITIAL_PATTERN = /^\p{L}{1,2}\.?$/u
+  const MIDDLE_INITIAL_PATTERN = /^\p{L}{1,2}$/u
 
   function formatPhone(phone: string) {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 12 && digits.startsWith('63')) {
-    return `+63 ${digits.slice(2, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`
+    const normalized = normalizeMobile(phone)
+    if (normalized) {
+      const digits = normalized.slice(3)
+      return `+63 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`
+    }
+    return phone
   }
-  if (digits.length === 11 && digits.startsWith('09')) {
-    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`
+
+  function getPhoneDigits(phone: string) {
+    const normalized = normalizeMobile(phone)
+    return normalized ? normalized.slice(3) : phone.replace(/\D/g, '').slice(-10)
   }
-  return phone}
 
   const handleEdit = () => {
     if (!profile) return
@@ -83,7 +112,7 @@ function UserAccounts() {
       first_name: profile.first_name,
       middle_initial: profile.middle_initial ?? '',
       last_name: profile.last_name,
-      phone: profile.phone,
+      phone: getPhoneDigits(profile.phone),
     })
     setEditing(true)
     setError('')
@@ -101,6 +130,7 @@ function UserAccounts() {
   const handleChange = (field: keyof ProfileForm, value: string) => {
     setFormValues((values) => values ? { ...values, [field]: value } : values)
     setMessage('')
+    setError('')
   }
 
   // Show loading and error states before rendering the profile.
@@ -123,17 +153,16 @@ function UserAccounts() {
     (formValues.first_name !== profile.first_name ||
       formValues.middle_initial !== (profile.middle_initial ?? '') ||
       formValues.last_name !== profile.last_name ||
-      formValues.phone !== profile.phone)
-  const firstNameIsValid = Boolean(formValues?.first_name.trim())
+      formValues.phone !== getPhoneDigits(profile.phone))
+  const firstNameResult = validateName(formValues?.first_name ?? '', 'First name')
+  const firstNameIsValid = !firstNameResult.error
+  const middleInitial = formValues?.middle_initial.trim() ?? ''
   const middleInitialIsValid =
-    Boolean(formValues?.middle_initial.trim()) &&
-    MIDDLE_INITIAL_PATTERN.test(formValues?.middle_initial.trim() ?? '')
-  const lastNameIsValid = Boolean(formValues?.last_name.trim())
-  const phoneIsValid = Boolean(
-    formValues?.phone &&
-      formValues.phone.length <= LIMITS.phone.max &&
-      normalizeMobile(formValues.phone),
-  )
+    middleInitial.length === 0 || MIDDLE_INITIAL_PATTERN.test(middleInitial)
+  const lastNameResult = validateName(formValues?.last_name ?? '', 'Last name')
+  const lastNameIsValid = !lastNameResult.error
+  const phoneIsValid =
+    formValues !== null && /^9\d{9}$/.test(formValues.phone)
 
   // Capitalize each name word and keep the middle initial uppercase.
   const formatName = (name: string) =>
@@ -143,6 +172,127 @@ function UserAccounts() {
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ')
 
+  const handleSave = async () => {
+    if (
+      !profile ||
+      !formValues ||
+      !hasChanges ||
+      !firstNameIsValid ||
+      !middleInitialIsValid ||
+      !lastNameIsValid ||
+      !phoneIsValid ||
+      saveLocked.current
+    ) {
+      return
+    }
+
+    const normalizedPhone = normalizeMobile(`+63${formValues.phone}`)
+    if (!normalizedPhone) return
+    const releaseCooldown = () => {
+      saveLocked.current = false
+      cooldownEndsAt.current = 0
+      setCooldownSeconds(0)
+    }
+
+    saveLocked.current = true
+    cooldownEndsAt.current = Date.now() + 30_000
+    setCooldownSeconds(30)
+    setSaving(true)
+    setError('')
+    setMessage('Saving changes...')
+
+    const updatedValues = {
+      first_name: firstNameResult.value,
+      middle_initial: middleInitial ? middleInitial.toUpperCase() : null,
+      last_name: lastNameResult.value,
+      phone: normalizedPhone,
+    }
+
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        releaseCooldown()
+        setError(
+          'Could not save your profile. Probable cause: your account session has expired. Sign in again and retry.',
+        )
+        setMessage('')
+        return
+      }
+
+      const { data, error: saveError } = await supabase
+        .from('profiles')
+        .update(updatedValues)
+        .eq('id', user.id)
+        .select('id')
+        .maybeSingle()
+
+      if (saveError) {
+        releaseCooldown()
+        const detail = `${saveError.code ?? ''} ${saveError.message}`.toLowerCase()
+        if (/failed to fetch|network|internet/.test(detail)) {
+          setError(
+            'Could not save your profile. Probable cause: a network connection problem. Check your connection and try again.',
+          )
+        } else if (
+          saveError.code === '42501' ||
+          /row-level security|permission denied|not allowed/.test(detail)
+        ) {
+          setError(
+            'Could not save your profile. Probable cause: your account does not have permission to update this profile.',
+          )
+        } else if (
+          /^[23]/.test(saveError.code ?? '') ||
+          /constraint|invalid input|violates|duplicate key/.test(detail)
+        ) {
+          setError(
+            'Could not save your profile. Probable cause: one or more values were rejected by the server. Review your entries and try again.',
+          )
+        } else {
+          setError(
+            'Could not save your profile. Probable cause: the server rejected the update or is temporarily unavailable. Please try again.',
+          )
+        }
+        setMessage('')
+        return
+      }
+
+      if (!data || data.id !== user.id) {
+        releaseCooldown()
+        setError(
+          'Could not confirm your profile was saved. Probable cause: the profile was not found, your account lacks permission, or the server returned a different profile.',
+        )
+        setMessage('')
+        return
+      }
+
+      setProfile((currentProfile) =>
+        currentProfile ? { ...currentProfile, ...updatedValues } : currentProfile,
+      )
+      setFormValues({
+        first_name: updatedValues.first_name,
+        middle_initial: updatedValues.middle_initial ?? '',
+        last_name: updatedValues.last_name,
+        phone: getPhoneDigits(updatedValues.phone),
+      })
+      setMessage('Profile updated successfully.')
+    } catch (saveError) {
+      releaseCooldown()
+      const detail =
+        saveError instanceof Error ? saveError.message.toLowerCase() : ''
+      setError(
+        /failed to fetch|network|internet/.test(detail)
+          ? 'Could not save your profile. Probable cause: a network connection problem. Check your connection and try again.'
+          : 'Could not save your profile. Probable cause: an unexpected server or connection error. Please try again.',
+      )
+      setMessage('')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   // Render the account page and its edit/view modes.
 
@@ -151,13 +301,7 @@ function UserAccounts() {
     <div className="account-page">
       <h1>My Account</h1>
 
-      {error && <p role="alert">{error}</p>}
-      {message && (
-        <p className="profile-save-notice" role="status">
-          {message}
-        </p>
-      )}
-
+      {error && <p className="profile-save-notice profile-save-error" role="alert">{error}</p>}
       {/* Profile View Mode (before editing) */}
       {!editing && (
         <div className="profile-view-mode">
@@ -206,27 +350,33 @@ function UserAccounts() {
                 type="text"
                 value={formValues.first_name}
                 onChange={(event) => handleChange('first_name', event.target.value)}
+                maxLength={LIMITS.name.max}
                 aria-invalid={!firstNameIsValid}
+                disabled={saving}
                 required
               />
-              {!firstNameIsValid && <p role="alert">First name is required.</p>}
+              {!firstNameIsValid && <p role="alert">{firstNameResult.error}</p>}
             </div>
 
-            {/* Fail-safe: limit initials to the registration format. */}
             <div>
-              <label htmlFor="middle_initial">Middle Initial</label>
+              <label htmlFor="middle_initial">Middle Initial (optional)</label>
               <input
                 id="middle_initial"
                 type="text"
-                maxLength={LIMITS.middleInitial.max}
-                placeholder="A, AB, or AB."
+                maxLength={2}
+                placeholder="Optional"
                 value={formValues.middle_initial}
-                onChange={(event) => handleChange('middle_initial', event.target.value)}
+                onChange={(event) =>
+                  handleChange(
+                    'middle_initial',
+                    event.target.value.replace(/\P{L}/gu, '').slice(0, 2),
+                  )
+                }
                 aria-invalid={!middleInitialIsValid}
-                required
+                disabled={saving}
               />
               {!middleInitialIsValid && (
-                <p role="alert">Enter one or two letters for the middle initial.</p>
+                <p role="alert">Enter up to two letters for the middle initial.</p>
               )}
             </div>
 
@@ -237,32 +387,37 @@ function UserAccounts() {
                 type="text"
                 value={formValues.last_name}
                 onChange={(event) => handleChange('last_name', event.target.value)}
+                maxLength={LIMITS.name.max}
                 aria-invalid={!lastNameIsValid}
+                disabled={saving}
                 required
               />
-              {!lastNameIsValid && <p role="alert">Last name is required.</p>}
+              {!lastNameIsValid && <p role="alert">{lastNameResult.error}</p>}
             </div>
 
             <div>
               <label htmlFor="phone">Phone</label>
-              {/* Fail-safe: cap length, strip letters, then validate PH mobile format. */}
-              <input
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                maxLength={LIMITS.phone.max}
-                value={formValues.phone}
-                onChange={(event) =>
-                  handleChange(
-                    'phone',
-                    event.target.value.replace(/[^\d+().\s-]/g, ''),
-                  )
-                }
-                aria-invalid={!phoneIsValid}
-                required
-              />
+              <div className="phone-input-row">
+                <span aria-hidden="true">+63</span>
+                <input
+                  id="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={formValues.phone}
+                  onChange={(event) => {
+                    let digits = event.target.value.replace(/\D/g, '')
+                    if (digits.startsWith('63')) digits = digits.slice(2)
+                    else if (digits.startsWith('0')) digits = digits.slice(1)
+                    handleChange('phone', digits.slice(0, 10))
+                  }}
+                  aria-invalid={!phoneIsValid}
+                  disabled={saving}
+                  required
+                />
+              </div>
               {!phoneIsValid && (
-                <p role="alert">Enter a valid PH mobile number, e.g. 0912 345 6789.</p>
+                <p role="alert">Enter 10 digits after +63, starting with 9.</p>
               )}
             </div>
 
@@ -296,23 +451,40 @@ function UserAccounts() {
                 type="button"
                 className="discard-button"
                 onClick={handleCancel}
+                disabled={saving}
               >
-                Discard
+                Cancel
               </button>
               <button
                 type="button"
-                  disabled={
-                    !hasChanges ||
-                    !firstNameIsValid ||
-                    !middleInitialIsValid ||
-                    !lastNameIsValid ||
-                    !phoneIsValid
-                  }
-                  onClick={() => setMessage('Saving changes is not available yet.')}
+                disabled={
+                  !hasChanges ||
+                  !firstNameIsValid ||
+                  !middleInitialIsValid ||
+                  !lastNameIsValid ||
+                  !phoneIsValid ||
+                  saving ||
+                  cooldownSeconds > 0
+                }
+                onClick={() => void handleSave()}
               >
-                Save Changes
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
+            {(message || cooldownSeconds > 0) && (
+              <div className="profile-save-status">
+                {message && (
+                  <p className="profile-save-notice profile-save-success" role="status">
+                    {message}
+                  </p>
+                )}
+                {cooldownSeconds > 0 && (
+                  <p className="profile-save-cooldown">
+                    You can save again in {cooldownSeconds} seconds.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
