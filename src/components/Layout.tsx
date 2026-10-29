@@ -49,6 +49,7 @@ export default function Layout() {
             {showCart && <NavLink to="/cart">Cart</NavLink>}
             {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
             {signedIn && <NavLink to="/account">My Account</NavLink>}
+            <NavLink to="/settings">Settings</NavLink>
             {role === 'guest' && <NavLink to="/login">Log in</NavLink>}
             {role === 'guest' && (
               <NavLink to="/register" className="nav-cta">

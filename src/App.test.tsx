@@ -1,10 +1,11 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Product } from './lib/api/products'
 import App from './App'
 
 const getProducts = vi.fn<() => Promise<Product[]>>()
 const getCurrentUserRole = vi.fn<() => Promise<string | null>>()
+const { getUser } = vi.hoisted(() => ({ getUser: vi.fn() }))
 
 vi.mock('./lib/api/auth', () => ({
   getCurrentUserRole: () => getCurrentUserRole(),
@@ -35,7 +36,7 @@ vi.mock('./lib/supabase', () => {
     supabase: {
       from: () => query,
       auth: {
-        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        getUser,
         signOut: () => Promise.resolve({ error: null }),
         onAuthStateChange: (callback: (event: string) => void) => {
           authChange = callback
@@ -75,6 +76,8 @@ beforeEach(() => {
   getProducts.mockResolvedValue([product])
   getCurrentUserRole.mockReset()
   getCurrentUserRole.mockResolvedValue(null)
+  getUser.mockReset()
+  getUser.mockResolvedValue({ data: { user: null }, error: null })
 })
 
 // Nav link names in order, once the role has loaded.
@@ -98,6 +101,8 @@ describe('App routes (signed-out guest)', () => {
   it.each([
     ['/login', 'Login'],
     ['/register', 'Register'],
+    ['/settings', 'Settings'],
+    ['/accessibility', 'Accessibility'],
     ['/customerHome', 'Customer Home'],
     ['/cart', 'My Cart'],
     ['/checkout', 'Checkout'],
@@ -114,6 +119,35 @@ describe('App routes (signed-out guest)', () => {
     expect(within(footerNav()).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     expect(within(footerNav()).getByRole('link', { name: 'Products' })).toHaveAttribute('href', '/catalog')
     expect(screen.getByText(`© ${new Date().getFullYear()} Water Delivery`)).toBeInTheDocument()
+  })
+
+  it('lets visitors access Accessibility but gates Address Logbook', async () => {
+    renderAt('/settings')
+
+    expect(screen.queryByRole('link', { name: 'Address Logbook' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Accessibility' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('link', { name: 'Accessibility' }))
+    expect(screen.getByRole('heading', { name: 'Accessibility' })).toBeInTheDocument()
+  })
+
+  it('does not expose Address Logbook to guests who open its URL directly', async () => {
+    renderAt('/account/address-logbook')
+    expect(await screen.findByText('You must sign in to access the Address Logbook.')).toBeInTheDocument()
+    expect(screen.queryByText('Saved addresses will be available here in a future update.')).not.toBeInTheDocument()
+  })
+
+  it('shows Address Logbook and its back-to-account link for signed-in users', async () => {
+    getCurrentUserRole.mockResolvedValue('user')
+    getUser.mockResolvedValue({ data: { user: { id: 'user-id' } }, error: null })
+    renderAt('/settings')
+
+    fireEvent.click(await screen.findByRole('link', { name: 'Address Logbook' }))
+    expect(await screen.findByText('Saved addresses will be available here in a future update.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to My Account' })).toHaveAttribute(
+      'href',
+      '/account',
+    )
   })
 
   it.each(['/account', '/employee', '/employee/orders', '/admin','/admin/employees', '/admin/employees/add', '/admin/employees/edit'])(
@@ -149,7 +183,7 @@ describe('App routes (signed-out guest)', () => {
 describe('Nav links by role', () => {
   it('shows a guest only public pages, Cart, Log in and Register', async () => {
     renderAt('/')
-    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'Log in', 'Register'])
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'Settings', 'Log in', 'Register'])
     expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
   })
 
@@ -162,7 +196,7 @@ describe('Nav links by role', () => {
   ])('shows a signed-in %s their pages, My Account and Logout', async (role, pages) => {
     getCurrentUserRole.mockResolvedValue(role)
     renderAt('/')
-    expect(await navLinks()).toEqual(['Home', 'Products', ...pages, 'My Account'])
+    expect(await navLinks()).toEqual(['Home', 'Products', ...pages, 'My Account', 'Settings'])
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument()
   })
 
@@ -182,31 +216,31 @@ describe('Nav links by role', () => {
 
   it('switches to the signed-in links after signing in without a reload', async () => {
     renderAt('/register')
-    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'Log in', 'Register'])
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'Settings', 'Log in', 'Register'])
 
     getCurrentUserRole.mockResolvedValue('user')
     act(() => authChange('SIGNED_IN'))
 
     expect(await within(mainNav()).findByRole('link', { name: 'My Account' })).toBeInTheDocument()
-    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'My Account'])
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'My Account', 'Settings'])
   })
 
   it('switches back to the guest links after signing out elsewhere', async () => {
     getCurrentUserRole.mockResolvedValue('admin')
     renderAt('/')
-    expect(await navLinks()).toEqual(['Home', 'Products', 'Admin', 'My Account'])
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Admin', 'My Account', 'Settings'])
 
     getCurrentUserRole.mockResolvedValue(null)
     act(() => authChange('SIGNED_OUT'))
 
     expect(await within(mainNav()).findByRole('link', { name: 'Log in' })).toBeInTheDocument()
-    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'Log in', 'Register'])
+    expect(await navLinks()).toEqual(['Home', 'Products', 'Cart', 'Settings', 'Log in', 'Register'])
   })
 
   it('shows only My Account and Logout when the role can not be loaded', async () => {
     getCurrentUserRole.mockRejectedValue(new Error('network down'))
     renderAt('/')
-    expect(await navLinks()).toEqual(['Home', 'Products', 'My Account'])
+    expect(await navLinks()).toEqual(['Home', 'Products', 'My Account', 'Settings'])
     expect(screen.getByRole('button', { name: 'Logout' })).toBeInTheDocument()
   })
 })
