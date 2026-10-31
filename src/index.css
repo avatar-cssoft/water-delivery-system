@@ -237,6 +237,33 @@ body {
   color: var(--accent-hover);
 }
 
+.main .settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.main .settings-action {
+  display: inline-flex;
+  min-height: 40px;
+  box-sizing: border-box;
+  align-items: center;
+  padding: 9px 15px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.main .settings-action:hover {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  color: #fff;
+}
+
 .main button {
   min-height: 40px;
   padding: 9px 15px;
@@ -329,6 +356,21 @@ body {
   gap: 12px;
 }
 
+.profile-save-status {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-save-status p {
+  margin: 8px 0 0;
+}
+
+.profile-save-cooldown {
+  color: var(--muted);
+}
+
 .main .profile-edit-actions .discard-button {
   border-color: var(--border);
   background: var(--surface);
@@ -376,6 +418,21 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.phone-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phone-input-row > span {
+  flex: 0 0 auto;
+}
+
+.phone-input-row > input {
+  min-width: 0;
+  flex: 1;
 }
 
 .main input.profile-readonly-address {
@@ -432,8 +489,12 @@ body {
   color: var(--success);
 }
 
-.main .profile-save-notice {
+.main .profile-save-error {
   color: var(--danger);
+}
+
+.main .profile-save-success {
+  color: var(--success);
 }
 
 .main article {
