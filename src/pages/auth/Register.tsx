@@ -1,140 +1,190 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
 
+import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import {
-  LIMITS,
-  validateRegister,
-  type RegisterErrors,
-  type RegisterInput,
-} from '../../lib/validation/register'
+
+interface RegisterInput {
+  firstName: string
+  lastName: string
+  middleInitial: string
+  phone: string
+  street: string
+  barangay: string
+  city: string
+  province: string
+  postalCode: string
+  email: string
+  password: string
+  confirmPassword: string
+}
 
 const EMPTY: RegisterInput = {
   firstName: '',
   lastName: '',
   middleInitial: '',
   phone: '',
-  address: '',
+  street: '',
+  barangay: '',
+  city: '',
+  province: '',
+  postalCode: '',
   email: '',
   password: '',
+  confirmPassword: '',
 }
 
 function Register() {
   const [values, setValues] = useState<RegisterInput>(EMPTY)
-  const [fieldErrors, setFieldErrors] = useState<RegisterErrors>({})
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const field = e.target.name as keyof RegisterInput
-    setValues((prev) => ({ ...prev, [field]: e.target.value }))
-    // Clear a field's error as soon as the user edits it.
-    setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
+    const { name, value } = e.target
+
+    setValues((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
   }
 
   const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
     if (loading) return
 
     setError('')
     setMessage('')
 
-    const result = validateRegister(values)
-    if (!result.ok) {
-      setFieldErrors(result.errors)
-      return
-    }
-    const data = result.data
+    const requiredFields: (keyof RegisterInput)[] = [
+      'firstName',
+      'lastName',
+      'phone',
+      'street',
+      'barangay',
+      'city',
+      'province',
+      'postalCode',
+      'email',
+      'password',
+      'confirmPassword',
+    ]
 
-    setLoading(true)
-
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
-      return
-    }
-
-    if (authData.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          first_name: data.firstName,
-          last_name: data.lastName,
-          middle_initial: data.middleInitial,
-          phone: data.phone,
-          address: data.address,
-          role: 'user',
-        })
-
-      if (profileError) {
-        setError(profileError.message)
-        setLoading(false)
+    for (const field of requiredFields) {
+      if (!values[field].trim()) {
+        setError('Please complete all required fields.')
         return
       }
     }
 
-    setValues(EMPTY)
-    setMessage('Registration successful! You can now log in.')
-    setLoading(false)
+    if (!/^(09\d{9}|\+639\d{9})$/.test(values.phone)) {
+      setError('Enter a valid Philippine mobile number.')
+      return
+    }
+
+    if (!/^\d{4}$/.test(values.postalCode)) {
+      setError('Enter a valid 4-digit postal code.')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+      setError('Enter a valid email address.')
+      return
+    }
+
+    if (values.password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+
+    if (values.password !== values.confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: values.email.trim(),
+        password: values.password,
+        options: {
+          data: {
+            first_name: values.firstName.trim(),
+            last_name: values.lastName.trim(),
+            middle_initial: values.middleInitial.trim(),
+            full_name: `${values.firstName.trim()} ${values.lastName.trim()}`,
+            phone: values.phone.trim(),
+            street: values.street.trim(),
+            barangay: values.barangay.trim(),
+            city: values.city.trim(),
+            province: values.province.trim(),
+            postal_code: values.postalCode.trim(),
+          },
+        },
+      })
+
+      if (signUpError) {
+        setError(signUpError.message)
+        return
+      }
+
+      if (!data.user) {
+        setError('Registration failed. Please try again.')
+        return
+      }
+
+      setValues(EMPTY)
+      setMessage(
+        'Registration successful! Please check your email if confirmation is required, then log in.',
+      )
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'An unexpected error occurred.',
+      )
+    } finally {
+      setLoading(false)
+    }
   }
-
-  // Shared props for each field's error message and its accessibility wiring.
-  const errorProps = (field: keyof RegisterInput) => ({
-    'aria-invalid': fieldErrors[field] ? true : undefined,
-    'aria-describedby': fieldErrors[field] ? `${field}-error` : undefined,
-  })
-
-  const fieldError = (field: keyof RegisterInput) =>
-    fieldErrors[field] && <p id={`${field}-error`}>{fieldErrors[field]}</p>
 
   return (
     <div>
       <h1>Water Delivery System</h1>
-
-      <h2>Register</h2>
+      <h2>Customer Registration</h2>
 
       <form onSubmit={handleRegister} noValidate>
+        <h3>Personal Information</h3>
 
         <div>
-          <label htmlFor="firstName">First Name</label>
+          <label htmlFor="firstName">First Name *</label>
           <br />
           <input
             id="firstName"
             name="firstName"
-            type="text"
-            autoComplete="given-name"
             value={values.firstName}
             onChange={handleChange}
-            maxLength={LIMITS.name.max}
+            autoComplete="given-name"
+            maxLength={100}
             required
-            {...errorProps('firstName')}
           />
-          {fieldError('firstName')}
         </div>
 
         <br />
 
         <div>
-          <label htmlFor="lastName">Last Name</label>
+          <label htmlFor="lastName">Last Name *</label>
           <br />
           <input
             id="lastName"
             name="lastName"
-            type="text"
-            autoComplete="family-name"
             value={values.lastName}
             onChange={handleChange}
-            maxLength={LIMITS.name.max}
+            autoComplete="family-name"
+            maxLength={100}
             required
-            {...errorProps('lastName')}
           />
-          {fieldError('lastName')}
         </div>
 
         <br />
@@ -145,105 +195,174 @@ function Register() {
           <input
             id="middleInitial"
             name="middleInitial"
-            type="text"
-            autoComplete="additional-name"
             value={values.middleInitial}
             onChange={handleChange}
-            maxLength={LIMITS.middleInitial.max}
-            {...errorProps('middleInitial')}
+            autoComplete="additional-name"
+            maxLength={5}
           />
-          {fieldError('middleInitial')}
         </div>
 
         <br />
 
         <div>
-          <label htmlFor="phone">Phone</label>
+          <label htmlFor="phone">Mobile Number *</label>
           <br />
           <input
             id="phone"
             name="phone"
             type="tel"
-            inputMode="tel"
-            autoComplete="tel"
             value={values.phone}
             onChange={handleChange}
-            maxLength={LIMITS.phone.max}
+            autoComplete="tel"
+            placeholder="09XXXXXXXXX"
+            maxLength={13}
             required
-            {...errorProps('phone')}
           />
-          {fieldError('phone')}
         </div>
 
         <br />
 
+        <h3>Address Information</h3>
+
         <div>
-          <label htmlFor="address">Address</label>
+          <label htmlFor="street">Street / House Number *</label>
           <br />
           <input
-            id="address"
-            name="address"
-            type="text"
-            autoComplete="street-address"
-            value={values.address}
+            id="street"
+            name="street"
+            value={values.street}
             onChange={handleChange}
-            maxLength={LIMITS.address.max}
+            autoComplete="street-address"
+            maxLength={255}
             required
-            {...errorProps('address')}
           />
-          {fieldError('address')}
         </div>
 
         <br />
 
         <div>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="barangay">Barangay *</label>
+          <br />
+          <input
+            id="barangay"
+            name="barangay"
+            value={values.barangay}
+            onChange={handleChange}
+            maxLength={100}
+            required
+          />
+        </div>
+
+        <br />
+
+        <div>
+          <label htmlFor="city">City / Municipality *</label>
+          <br />
+          <input
+            id="city"
+            name="city"
+            value={values.city}
+            onChange={handleChange}
+            maxLength={100}
+            required
+          />
+        </div>
+
+        <br />
+
+        <div>
+          <label htmlFor="province">Province *</label>
+          <br />
+          <input
+            id="province"
+            name="province"
+            value={values.province}
+            onChange={handleChange}
+            maxLength={100}
+            required
+          />
+        </div>
+
+        <br />
+
+        <div>
+          <label htmlFor="postalCode">Postal Code *</label>
+          <br />
+          <input
+            id="postalCode"
+            name="postalCode"
+            value={values.postalCode}
+            onChange={handleChange}
+            inputMode="numeric"
+            maxLength={4}
+            required
+          />
+        </div>
+
+        <br />
+
+        <h3>Account Information</h3>
+
+        <div>
+          <label htmlFor="email">Email Address *</label>
           <br />
           <input
             id="email"
             name="email"
             type="email"
-            autoComplete="email"
             value={values.email}
             onChange={handleChange}
-            maxLength={LIMITS.email.max}
+            autoComplete="email"
+            maxLength={255}
             required
-            {...errorProps('email')}
           />
-          {fieldError('email')}
         </div>
 
         <br />
 
         <div>
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">Password *</label>
           <br />
           <input
             id="password"
             name="password"
             type="password"
-            autoComplete="new-password"
             value={values.password}
             onChange={handleChange}
-            minLength={LIMITS.password.min}
+            autoComplete="new-password"
+            minLength={8}
             required
-            {...errorProps('password')}
           />
-          {fieldError('password')}
+        </div>
+
+        <br />
+
+        <div>
+          <label htmlFor="confirmPassword">Confirm Password *</label>
+          <br />
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            value={values.confirmPassword}
+            onChange={handleChange}
+            autoComplete="new-password"
+            required
+          />
         </div>
 
         <br />
 
         <button type="submit" disabled={loading}>
-          {loading ? 'Creating account...' : 'Register'}
+          {loading ? 'Creating Account...' : 'Register'}
         </button>
 
-        {error && <p>{error}</p>}
-        {message && <p>{message}</p>}
+        {error && <p role="alert">{error}</p>}
+        {message && <p role="status">{message}</p>}
       </form>
 
       <p>
-        Already have an account? <a href="/login">Login</a>
+        Already have an account? <Link to="/login">Login</Link>
       </p>
     </div>
   )
