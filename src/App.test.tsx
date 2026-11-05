@@ -95,9 +95,9 @@ describe('App routes (signed-out guest)', () => {
     expect(screen.queryByRole('heading', { name: 'Login' })).not.toBeInTheDocument()
   })
 
-  it.each([
+   it.each([
     ['/login', 'Login'],
-    ['/register', 'Register'],
+    ['/register', 'Customer Registration'],
     ['/customerHome', 'Customer Home'],
     ['/cart', 'My Cart'],
     ['/checkout', 'Checkout'],
