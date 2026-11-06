@@ -160,9 +160,7 @@ describe('App routes (signed-out guest)', () => {
       ),
     ).toBeInTheDocument()
     expect(
-      screen.queryByText(
-        'Saved addresses will be available here in a future update.',
-      ),
+      screen.queryByRole('button', { name: '+ Add Address' }),
     ).not.toBeInTheDocument()
   })
 
@@ -178,12 +176,10 @@ describe('App routes (signed-out guest)', () => {
       await screen.findByRole('link', { name: 'Address Logbook' }),
     )
     expect(
-      await screen.findByText(
-        'Saved addresses will be available here in a future update.',
-      ),
+      await screen.findByRole('button', { name: '+ Add Address' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: 'Back to My Account' }),
+      screen.getByRole('link', { name: /Back to My Account/ }),
     ).toHaveAttribute('href', '/account')
   })
 
