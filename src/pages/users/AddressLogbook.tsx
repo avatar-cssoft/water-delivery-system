@@ -39,44 +39,54 @@ function AddressLogbook() {
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const reloadAddresses = () => setReloadKey(key => key + 1)
 
   // Fetch logged-in user's addresses
-  const fetchAddresses = async () => {
-    try {
-      const { data: { user }, error: sessionError } =
-        await supabase.auth.getUser()
-
-      if (sessionError || !user) {
-        setSignedIn(false)
-        setError('Please sign in again.')
-        return
-      }
-
-      setSignedIn(true)
-      setUserId(user.id)
-
-      const { data, error: fetchError } = await supabase
-        .from('addresses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (fetchError) throw fetchError
-
-      setAddresses(data || [])
-      setError('')
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load addresses.'
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    let cancelled = false
+
+    const fetchAddresses = async () => {
+      try {
+        const { data: { user }, error: sessionError } =
+          await supabase.auth.getUser()
+        if (cancelled) return
+
+        if (sessionError || !user) {
+          setSignedIn(false)
+          return
+        }
+
+        setSignedIn(true)
+        setUserId(user.id)
+
+        const { data, error: fetchError } = await supabase
+          .from('addresses')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+        if (cancelled) return
+
+        if (fetchError) throw fetchError
+
+        setAddresses(data || [])
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : 'Failed to load addresses.'
+          )
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
     void fetchAddresses()
-  }, [])
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
 
   // Handle input changes
   const handleChange = (
@@ -149,7 +159,7 @@ function AddressLogbook() {
       setShowForm(false)
       setEditingId(null)
 
-      await fetchAddresses()
+      reloadAddresses()
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to save address.'
@@ -165,6 +175,8 @@ function AddressLogbook() {
       return
     }
 
+    setError('')
+
     const { error: deleteError } = await supabase
       .from('addresses')
       .delete()
@@ -176,7 +188,7 @@ function AddressLogbook() {
       return
     }
 
-    await fetchAddresses()
+    reloadAddresses()
   }
 
   // Set default address
@@ -199,12 +211,12 @@ function AddressLogbook() {
 
       if (updateError) throw updateError
 
-      await fetchAddresses()
+      reloadAddresses()
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to update default address.'
       )
-      await fetchAddresses()
+      reloadAddresses()
     }
   }
 
@@ -216,7 +228,7 @@ function AddressLogbook() {
     return (
       <section className="p-6">
         <h1 className="text-2xl font-bold">Address Logbook</h1>
-        <p role="alert">{error || 'Please sign in first.'}</p>
+        <p role="alert">{error || 'You must sign in to access the Address Logbook.'}</p>
         <Link to="/login" className="text-blue-600">
           Sign in
         </Link>
