@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { appPath } from '../../../lib/navigation'
 
 type Employee = {
   id: string
@@ -95,7 +96,7 @@ function EditEmployee() {
 
   useEffect(() => {
     if (redirect) {
-      window.location.href = '/'
+      window.location.href = appPath('/')
     }
   }, [redirect])
 
@@ -173,7 +174,7 @@ function EditEmployee() {
     setMessage('Employee updated successfully.')
 
     setTimeout(() => {
-      window.location.href = '/admin/employees'
+      window.location.href = appPath('/admin/employees')
     }, 1000)
   }
 
@@ -342,7 +343,7 @@ function EditEmployee() {
           type="button"
           onClick={() => {
             window.location.href =
-              '/admin/employees'
+              appPath('/admin/employees')
           }}
         >
           Cancel

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getCurrentUserRole } from '../../lib/api/auth'
 import { supabase } from '../../lib/supabase'
+import { appPath } from '../../lib/navigation'
 
 type Profile = {
   id: string
@@ -47,12 +48,12 @@ function Orders() {
         if (cancelled) return
 
         if (!role) {
-          window.location.href = '/login'
+          window.location.href = appPath('/login')
           return
         }
 
         if (!staffRoles.includes(role)) {
-          window.location.href = '/'
+          window.location.href = appPath('/')
           return
         }
 
@@ -61,7 +62,7 @@ function Orders() {
         console.error('Could not check staff role:', err)
 
         if (!cancelled) {
-          window.location.href = '/'
+          window.location.href = appPath('/')
         }
       }
     }
@@ -204,7 +205,7 @@ function Orders() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = '/employee'
+            window.location.href = appPath('/employee')
           }}
           style={buttonStyle}
         >

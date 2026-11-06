@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useNavRole } from './useNavRole'
 //BrankMark image = PLACEHOLDER FOR NOW
 import brandMarkImage from '../assets/icons/BrandMark-Placeholder.jpg'
+import { appPath } from '../lib/navigation'
 
 export default function Layout() {
   const role = useNavRole()
@@ -15,7 +16,7 @@ export default function Layout() {
       return
     }
 
-    window.location.href = '/'
+    window.location.href = appPath('/')
   }
 
   // ROLE-BASED NAVIGATION
@@ -49,6 +50,7 @@ export default function Layout() {
             {showCart && <NavLink to="/cart">Cart</NavLink>}
             {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
             {signedIn && <NavLink to="/account">My Account</NavLink>}
+            <NavLink to="/settings">Settings</NavLink>
             {role === 'guest' && <NavLink to="/login">Log in</NavLink>}
             {role === 'guest' && (
               <NavLink to="/register" className="nav-cta">

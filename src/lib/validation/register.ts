@@ -72,7 +72,7 @@ export function normalizeMobile(value: string): string | null {
   return match ? `+63${match[1]}` : null
 }
 
-function validateName(value: string, label: string): { value: string; error?: string } {
+export function validateName(value: string, label: string): { value: string; error?: string } {
   const name = sanitizeText(value)
   if (!name) return { value: name, error: `${label} is required.` }
   if (name.length > LIMITS.name.max) {

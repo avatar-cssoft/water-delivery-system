@@ -7,6 +7,7 @@ import {
   type CartItem,
 } from '../../lib/cart'
 import { formatPrice } from '../../lib/api/products'
+import { appPath } from '../../lib/navigation'
 
 export default function Cart() {
   const [items, setItems] = useState<CartItem[]>(getCart)
@@ -75,7 +76,7 @@ export default function Cart() {
 
           <button
             onClick={() => {
-              window.location.href = '/checkout'
+              window.location.href = appPath('/checkout')
             }}
           >
             Proceed to Checkout
@@ -85,7 +86,7 @@ export default function Cart() {
 
       <button
         onClick={() => {
-          window.location.href = '/catalog'
+          window.location.href = appPath('/catalog')
         }}
       >
         Continue Shopping

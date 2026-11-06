@@ -5,7 +5,10 @@ import Home from './pages/Home'
 import NotFound from './pages/NotFound'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import AddressLogbook from './pages/users/AddressLogbook'
 import UserAccounts from './pages/users/UserAccount'
+import Settings from './pages/Settings'
+import Accessibility from './pages/Accessibility'
 
 // Admin imports
 import Admin from './pages/admin/admin'
@@ -26,14 +29,20 @@ import Checkout from './pages/customer/Checkout'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route element={<Layout />}>
           {/* Home and authentication */}
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+
+          {/* User account */}
           <Route path="account" element={<UserAccounts />} />
+          <Route path="account/address-logbook" element={<AddressLogbook />} />
+
+          <Route path="settings" element={<Settings />} />
+          <Route path="accessibility" element={<Accessibility />} />
 
           {/* Customer routes */}
           <Route path="customerHome" element={<CustomerHome />} />

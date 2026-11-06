@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getCart, clearCart } from '../../lib/cart'
 import { formatPrice } from '../../lib/api/products'
+import { appPath } from '../../lib/navigation'
 
 export default function Checkout() {
   const [address, setAddress] = useState('')
@@ -129,7 +130,7 @@ export default function Checkout() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = '/cart'
+          window.location.href = appPath('/cart')
         }}
       >
         Back to Cart

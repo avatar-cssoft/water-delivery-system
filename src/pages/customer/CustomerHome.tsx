@@ -1,6 +1,7 @@
 
 import { getCart } from '../../lib/cart'
 import { formatPrice } from '../../lib/api/products'
+import { appPath } from '../../lib/navigation'
 
 export default function CustomerHome() {
   const cart = getCart()
@@ -30,7 +31,7 @@ export default function CustomerHome() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = '/catalog'
+            window.location.href = appPath('/catalog')
           }}
         >
           Browse Products
@@ -67,7 +68,7 @@ export default function CustomerHome() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = '/cart'
+            window.location.href = appPath('/cart')
           }}
         >
           View My Cart
@@ -77,7 +78,7 @@ export default function CustomerHome() {
       <button
         type="button"
         onClick={() => {
-          window.location.href = '/account'
+          window.location.href = appPath('/account')
         }}
       >
         My Account
