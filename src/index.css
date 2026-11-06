@@ -475,6 +475,143 @@ body {
   color: var(--button-text);
 }
 
+.address-logbook-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.main .address-logbook-header p {
+  margin: 0;
+}
+
+.main .address-cancel-button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.main .address-cancel-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.main .address-form {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.main .address-form h2 {
+  margin: 0;
+}
+
+.main .address-form > button {
+  justify-self: start;
+}
+
+.main .address-form-fields {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+}
+
+.address-empty {
+  padding: 32px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.main .address-empty p {
+  margin: 0;
+}
+
+.main .address-empty p + p {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.address-list {
+  display: grid;
+  gap: 16px;
+}
+
+.main .address-card {
+  background: var(--surface);
+}
+
+.address-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.address-card-header > div:first-child {
+  min-width: 0;
+}
+
+.main .address-card h3 {
+  margin: 0 0 4px;
+}
+
+.address-default-badge {
+  display: inline-block;
+  color: var(--success);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.address-card-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.address-card-details {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.main .address-card-details p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.main .address-card-details strong {
+  color: #d3dce2;
+}
+
+.main .address-text-button {
+  min-height: 32px;
+  padding: 4px 10px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent);
+}
+
+.main .address-text-button:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--card);
+  color: var(--accent-hover);
+}
+
+.main .address-delete-button,
+.main .address-delete-button:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.main .address-default-button {
+  margin: 12px 0 0 -10px;
+}
+
+.address-logbook-back {
+  margin-top: 24px;
+}
+
 .main input[aria-invalid='true'],
 .main textarea[aria-invalid='true'] {
   border-color: var(--danger);
