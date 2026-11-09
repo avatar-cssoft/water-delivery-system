@@ -27,6 +27,9 @@ import Catalog from './pages/customer/Catalog'
 import Cart from './pages/customer/Cart'
 import Checkout from './pages/customer/Checkout'
 
+// Driver imports
+import DriverDashboard from './pages/driver/DriverDashboard'
+
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -53,6 +56,9 @@ export default function App() {
           {/* Employee routes */}
           <Route path="employee" element={<EmployeeHome />} />
           <Route path="employee/orders" element={<Orders />} />
+
+          {/* Driver routes */}
+          <Route path="driver" element={<DriverDashboard />} />
 
           {/* Admin routes */}
           <Route path="admin" element={<Admin />} />
