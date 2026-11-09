@@ -29,6 +29,7 @@ import Checkout from './pages/customer/Checkout'
 
 // Driver imports
 import DriverDashboard from './pages/driver/DriverDashboard'
+import DriverProfile from './pages/driver/DriverProfile'
 
 export default function App() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
 
           {/* Driver routes */}
           <Route path="driver" element={<DriverDashboard />} />
+          <Route path="driver" element={<DriverProfile/>}/>
 
           {/* Admin routes */}
           <Route path="admin" element={<Admin />} />
