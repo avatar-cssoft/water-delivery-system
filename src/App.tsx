@@ -1,6 +1,8 @@
 
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import Layout from './components/Layout'
+import { useNavRole } from './components/useNavRole'
 import Home from './pages/Home'
 import NotFound from './pages/NotFound'
 import Login from './pages/auth/Login'
@@ -12,6 +14,7 @@ import Accessibility from './pages/Accessibility'
 
 // Admin imports
 import Admin from './pages/admin/admin'
+import AdminOrders from './pages/admin/Orders'
 import Products from './pages/admin/products'
 import Employee from './pages/admin/EmployeeManagement/Employee'
 import AddEmployee from './pages/admin/EmployeeManagement/AddEmployee'
@@ -26,10 +29,45 @@ import CustomerHome from './pages/customer/CustomerHome'
 import Catalog from './pages/customer/Catalog'
 import Cart from './pages/customer/Cart'
 import Checkout from './pages/customer/Checkout'
-
-// Driver imports
 import DriverDashboard from './pages/driver/DriverDashboard'
 import DriverProfile from './pages/driver/DriverProfile'
+
+function EmployeeDashboardRoute() {
+  const { role, department } = useNavRole()
+
+  if (role === 'checking') {
+    return <p>Loading dashboard...</p>
+  }
+
+  if (role === 'employee' && department === 'Delivery') {
+    return <Navigate to="/driver" replace />
+  }
+
+  return <EmployeeHome />
+}
+
+function DriverDashboardRoute({ children }: { children?: ReactNode }) {
+  const { role, department } = useNavRole()
+
+  if (role === 'checking') {
+    return <p>Loading dashboard...</p>
+  }
+
+  if (role === 'employee' && department === 'Delivery') {
+    return children ?? <DriverDashboard />
+  }
+
+  const redirectPath =
+    role === 'guest'
+      ? '/login'
+      : role === 'employee'
+        ? '/employee'
+        : role === 'customer'
+          ? '/customerHome'
+          : '/'
+
+  return <Navigate to={redirectPath} replace />
+}
 
 export default function App() {
   return (
@@ -55,15 +93,21 @@ export default function App() {
           <Route path="checkout" element={<Checkout />} />
 
           {/* Employee routes */}
-          <Route path="employee" element={<EmployeeHome />} />
+          <Route path="employee" element={<EmployeeDashboardRoute />} />
           <Route path="employee/orders" element={<Orders />} />
-
-          {/* Driver routes */}
-          <Route path="driver" element={<DriverDashboard />} />
-          <Route path="driver" element={<DriverProfile/>}/>
+          <Route path="driver" element={<DriverDashboardRoute />} />
+          <Route
+            path="driver/profile"
+            element={
+              <DriverDashboardRoute>
+                <DriverProfile />
+              </DriverDashboardRoute>
+            }
+          />
 
           {/* Admin routes */}
           <Route path="admin" element={<Admin />} />
+          <Route path="admin/orders" element={<AdminOrders />} />
           <Route path="admin/products" element={<Products />} />
           <Route path="admin/employees" element={<Employee />} />
           <Route path="admin/employees/add" element={<AddEmployee />} />

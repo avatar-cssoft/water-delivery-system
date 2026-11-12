@@ -1,14 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 
+export type CurrentUserProfile = {
+  role: string
+  department: string | null
+}
+
 /**
- * Returns the signed-in user's role from public.profiles, or null when nobody is
- * signed in. Only used to decide what to show: the database's RLS policies are
- * what actually stop non-admins from writing.
+ * Returns the signed-in user's role and department, or null when nobody is
+ * signed in.
  */
-export async function getCurrentUserRole(
+export async function getCurrentUserProfile(
   client: SupabaseClient = supabase,
-): Promise<string | null> {
+): Promise<CurrentUserProfile | null> {
   const {
     data: { user },
   } = await client.auth.getUser()
@@ -19,7 +23,7 @@ export async function getCurrentUserRole(
 
   const { data, error } = await client
     .from('profiles')
-    .select('role')
+    .select('role, department')
     .eq('id', user.id)
     .single()
 
@@ -27,5 +31,15 @@ export async function getCurrentUserRole(
     throw new Error(error.message)
   }
 
-  return (data as { role: string }).role
+  return data as CurrentUserProfile
+}
+
+/**
+ * Returns the signed-in user's role, or null when nobody is signed in.
+ */
+export async function getCurrentUserRole(
+  client: SupabaseClient = supabase,
+): Promise<string | null> {
+  const profile = await getCurrentUserProfile(client)
+  return profile?.role ?? null
 }

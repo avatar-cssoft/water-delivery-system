@@ -63,7 +63,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: "30px",
     minHeight: "100vh",
-    backgroundColor: "#f5f7fb",
+    backgroundColor: "var(--bg)",
     fontFamily: "Arial, sans-serif",
   },
   header: {
@@ -77,25 +77,25 @@ const styles: Record<string, React.CSSProperties> = {
   heading: {
     fontSize: "28px",
     margin: 0,
-    color: "#1e293b",
+    color: "var(--text)",
   },
   subtitle: {
-    color: "#64748b",
+    color: "var(--muted)",
     marginTop: "8px",
   },
   profile: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    color: "#334155",
+    color: "var(--text)",
     fontWeight: "bold",
   },
   avatar: {
     width: "40px",
     height: "40px",
     borderRadius: "50%",
-    backgroundColor: "#2563eb",
-    color: "#ffffff",
+    backgroundColor: "var(--accent)",
+    color: "var(--button-text)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -107,44 +107,44 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: "30px",
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "var(--surface)",
     padding: "22px",
     borderRadius: "12px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
   },
   cardLabel: {
-    color: "#64748b",
+    color: "var(--muted)",
     fontSize: "14px",
     margin: 0,
   },
   cardNumber: {
-    color: "#1e293b",
+    color: "var(--text)",
     fontSize: "32px",
     margin: "12px 0",
   },
   cardDescription: {
-    color: "#94a3b8",
+    color: "var(--muted)",
     fontSize: "13px",
     margin: 0,
   },
   section: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "var(--surface)",
     padding: "25px",
     borderRadius: "12px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
   },
   sectionTitle: {
-    color: "#1e293b",
+    color: "var(--text)",
     margin: 0,
   },
   sectionSubtitle: {
-    color: "#64748b",
+    color: "var(--muted)",
     fontSize: "14px",
   },
   emptyState: {
     textAlign: "center",
     padding: "45px 20px",
-    color: "#64748b",
+    color: "var(--muted)",
   },
 };
 

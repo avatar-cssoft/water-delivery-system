@@ -1,15 +1,27 @@
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Product } from './lib/api/products'
 import App from './App'
 
 const getProducts = vi.fn<() => Promise<Product[]>>()
-const getCurrentUserRole = vi.fn<() => Promise<string | null>>()
-const { getUser } = vi.hoisted(() => ({ getUser: vi.fn() }))
+const getCurrentUserProfile = vi.fn<
+  () => Promise<{ role: string; department: string | null } | null>
+>()
+const { getUser, getProfile } = vi.hoisted(() => ({
+  getUser: vi.fn(),
+  getProfile: vi.fn(),
+}))
 
 vi.mock('./lib/api/auth', () => ({
-  getCurrentUserRole: () => getCurrentUserRole(),
+  getCurrentUserProfile: () => getCurrentUserProfile(),
 }))
 
 vi.mock('./lib/api/products', async (importOriginal) => {
@@ -31,7 +43,7 @@ vi.mock('./lib/supabase', () => {
     select: () => query,
     eq: () => query,
     order: () => Promise.resolve(empty),
-    single: () => Promise.resolve({ data: null, error: null }),
+    single: () => getProfile(),
   }
   return {
     supabase: {
@@ -71,14 +83,22 @@ function footerNav() {
   return screen.getByRole('navigation', { name: 'Footer' })
 }
 
+function setProfile(role: string | null, department: string | null = null) {
+  getCurrentUserProfile.mockResolvedValue(
+    role === null ? null : { role, department },
+  )
+}
+
 beforeEach(() => {
   localStorage.clear()
   getProducts.mockReset()
   getProducts.mockResolvedValue([product])
-  getCurrentUserRole.mockReset()
-  getCurrentUserRole.mockResolvedValue(null)
+  getCurrentUserProfile.mockReset()
+  setProfile(null)
   getUser.mockReset()
   getUser.mockResolvedValue({ data: { user: null }, error: null })
+  getProfile.mockReset()
+  getProfile.mockResolvedValue({ data: null, error: null })
 })
 
 // Nav link names in order, once the role has loaded.
@@ -165,9 +185,10 @@ describe('App routes (signed-out guest)', () => {
   })
 
   it('shows Address Logbook and its back-to-account link for signed-in users', async () => {
-    getCurrentUserRole.mockResolvedValue('user')
-    getUser.mockResolvedValue({
-      data: { user: { id: 'user-id' } },
+    setProfile('user')
+    getUser.mockResolvedValue({ data: { user: { id: 'user-id' } }, error: null })
+    getProfile.mockResolvedValue({
+      data: { id: 'user-id', role: 'user' },
       error: null,
     })
     renderAt('/settings')
@@ -197,6 +218,53 @@ describe('App routes (signed-out guest)', () => {
     expect(
       screen.queryByRole('heading', { name: 'Page not found' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('sends Delivery employees from the employee dashboard to the Driver Dashboard', async () => {
+    setProfile('employee', 'Delivery')
+    renderAt('/employee')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Driver Dashboard' }),
+    ).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/driver')
+  })
+
+  it('allows Delivery employees to open the Driver Dashboard directly', async () => {
+    setProfile('employee', 'Delivery')
+    renderAt('/driver')
+
+    expect(
+      await screen.findByRole('heading', { name: 'Driver Dashboard' }),
+    ).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/driver')
+  })
+
+  it('redirects guests away from the Driver Dashboard', async () => {
+    renderAt('/driver')
+
+    await waitFor(() => expect(window.location.pathname).toBe('/login'))
+  })
+
+  it('keeps Management employees on the employee dashboard', async () => {
+    setProfile('employee', 'Management')
+    getUser.mockResolvedValue({
+      data: { user: { id: 'management-employee' } },
+      error: null,
+    })
+    getProfile.mockResolvedValue({
+      data: {
+        first_name: 'Morgan',
+        last_name: 'Manager',
+        department: 'Management',
+      },
+      error: null,
+    })
+    renderAt('/employee')
+
+    expect(
+      await screen.findByText('Manage customer orders and deliveries here.'),
+    ).toBeInTheDocument()
   })
 
   it('shows the product catalog at /catalog without logging in', async () => {
@@ -252,7 +320,7 @@ describe('Nav links by role', () => {
     ['rider', []],
     ['admin', ['Admin']],
   ])('shows a signed-in %s their pages, My Account and Logout', async (role, pages) => {
-    getCurrentUserRole.mockResolvedValue(role)
+    setProfile(role)
     renderAt('/')
     expect(await navLinks()).toEqual([
       'Home',
@@ -274,12 +342,22 @@ describe('Nav links by role', () => {
     ['admin', '/'],
     [null, '/'],
   ])('points Home at the right page for a %s', async (role, path) => {
-    getCurrentUserRole.mockResolvedValue(role)
+    setProfile(role)
     renderAt('/')
     await navLinks()
     expect(
       within(mainNav()).getByRole('link', { name: 'Home' }),
     ).toHaveAttribute('href', path)
+  })
+
+  it('points Home to the Driver Dashboard for Delivery employees', async () => {
+    setProfile('employee', 'Delivery')
+    renderAt('/')
+    await navLinks()
+
+    expect(
+      within(mainNav()).getByRole('link', { name: 'Home' }),
+    ).toHaveAttribute('href', '/driver')
   })
 
   it('switches to the signed-in links after signing in without a reload', async () => {
@@ -293,7 +371,7 @@ describe('Nav links by role', () => {
       'Register',
     ])
 
-    getCurrentUserRole.mockResolvedValue('user')
+    setProfile('user')
     act(() => authChange('SIGNED_IN'))
 
     expect(
@@ -309,7 +387,7 @@ describe('Nav links by role', () => {
   })
 
   it('switches back to the guest links after signing out elsewhere', async () => {
-    getCurrentUserRole.mockResolvedValue('admin')
+    setProfile('admin')
     renderAt('/')
     expect(await navLinks()).toEqual([
       'Home',
@@ -319,7 +397,7 @@ describe('Nav links by role', () => {
       'Settings',
     ])
 
-    getCurrentUserRole.mockResolvedValue(null)
+    setProfile(null)
     act(() => authChange('SIGNED_OUT'))
 
     expect(
@@ -336,7 +414,7 @@ describe('Nav links by role', () => {
   })
 
   it('shows only My Account and Logout when the role can not be loaded', async () => {
-    getCurrentUserRole.mockRejectedValue(new Error('network down'))
+    getCurrentUserProfile.mockRejectedValue(new Error('network down'))
     renderAt('/')
     expect(await navLinks()).toEqual([
       'Home',
