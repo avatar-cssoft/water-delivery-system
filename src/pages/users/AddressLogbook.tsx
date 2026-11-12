@@ -221,15 +221,15 @@ function AddressLogbook() {
   }
 
   if (loading) {
-    return <p className="p-6">Checking your account...</p>
+    return <p>Checking your account...</p>
   }
 
   if (!signedIn) {
     return (
-      <section className="p-6">
-        <h1 className="text-2xl font-bold">Address Logbook</h1>
+      <section>
+        <h1>Address Logbook</h1>
         <p role="alert">{error || 'You must sign in to access the Address Logbook.'}</p>
-        <Link to="/login" className="text-blue-600">
+        <Link to="/login">
           Sign in
         </Link>
       </section>
@@ -237,15 +237,15 @@ function AddressLogbook() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto p-6">
+    <main className="address-logbook">
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="address-logbook-header">
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1>
             Address Logbook
           </h1>
-          <p className="text-gray-500">
+          <p>
             Manage your saved delivery addresses.
           </p>
         </div>
@@ -256,7 +256,7 @@ function AddressLogbook() {
             setEditingId(null)
             setForm(initialForm)
           } : handleAdd}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+          className={showForm ? 'address-cancel-button' : undefined}
         >
           {showForm ? 'Cancel' : '+ Add Address'}
         </button>
@@ -264,7 +264,7 @@ function AddressLogbook() {
 
       {/* Error Message */}
       {error && (
-        <p className="text-red-500 mb-4" role="alert">
+        <p role="alert">
           {error}
         </p>
       )}
@@ -273,13 +273,13 @@ function AddressLogbook() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="border rounded-xl p-5 mb-6 space-y-4"
+          className="address-form"
         >
-          <h2 className="text-lg font-semibold">
+          <h2>
             {editingId ? 'Edit Delivery Address' : 'Add New Delivery Address'}
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="address-form-fields">
 
             <input
               name="recipient_name"
@@ -287,7 +287,6 @@ function AddressLogbook() {
               value={form.recipient_name}
               onChange={handleChange}
               required
-              className="border rounded-lg p-3 w-full"
             />
 
             <input
@@ -296,14 +295,12 @@ function AddressLogbook() {
               value={form.phone}
               onChange={handleChange}
               required
-              className="border rounded-lg p-3 w-full"
             />
 
             <select
               name="label"
               value={form.label}
               onChange={handleChange}
-              className="border rounded-lg p-3 w-full"
             >
               <option value="Home">Home</option>
               <option value="Work">Work</option>
@@ -317,7 +314,6 @@ function AddressLogbook() {
               value={form.address_line}
               onChange={handleChange}
               required
-              className="border rounded-lg p-3 w-full"
             />
 
             <input
@@ -326,7 +322,6 @@ function AddressLogbook() {
               value={form.barangay}
               onChange={handleChange}
               required
-              className="border rounded-lg p-3 w-full"
             />
 
             <input
@@ -335,7 +330,6 @@ function AddressLogbook() {
               value={form.city}
               onChange={handleChange}
               required
-              className="border rounded-lg p-3 w-full"
             />
 
             <input
@@ -344,7 +338,6 @@ function AddressLogbook() {
               value={form.province}
               onChange={handleChange}
               required
-              className="border rounded-lg p-3 w-full"
             />
 
             <input
@@ -352,7 +345,6 @@ function AddressLogbook() {
               placeholder="Postal Code (Optional)"
               value={form.postal_code}
               onChange={handleChange}
-              className="border rounded-lg p-3 w-full"
             />
 
           </div>
@@ -360,7 +352,6 @@ function AddressLogbook() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg disabled:opacity-50"
           >
             {saving
               ? 'Saving...'
@@ -373,58 +364,55 @@ function AddressLogbook() {
 
       {/* Saved Addresses */}
       <section>
-        <h2 className="text-lg font-semibold mb-4">
+        <h2>
           Saved Addresses ({addresses.length})
         </h2>
 
         {addresses.length === 0 ? (
-          <div className="border rounded-xl p-8 text-center">
-            <p className="text-gray-500">
+          <div className="address-empty">
+            <p>
               You don't have any saved addresses yet.
             </p>
-            <p className="text-sm text-gray-400 mt-2">
+            <p>
               Add an address to make ordering easier.
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="address-list">
 
             {addresses.map(address => (
-              <div
-                key={address.id}
-                className="border rounded-xl p-5"
-              >
-                <div className="flex justify-between items-start gap-3">
+              <article key={address.id} className="address-card">
+                <div className="address-card-header">
                   <div>
-                    <h3 className="font-semibold text-lg">
+                    <h3>
                       {address.label || 'Other'}
                     </h3>
 
                     {address.is_default && (
-                      <span className="text-green-600 text-sm font-medium">
+                      <span className="address-default-badge">
                         Default Delivery Address
                       </span>
                     )}
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="address-card-actions">
                     <button
                       onClick={() => handleEdit(address)}
-                      className="text-blue-600 text-sm hover:underline"
+                      className="address-text-button"
                     >
                       Edit
                     </button>
 
                     <button
                       onClick={() => handleDelete(address.id)}
-                      className="text-red-500 text-sm hover:underline"
+                      className="address-text-button address-delete-button"
                     >
                       Delete
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-3 space-y-1 text-sm text-gray-600">
+                <div className="address-card-details">
                   <p>
                     <strong>Recipient:</strong> {address.recipient_name}
                   </p>
@@ -448,13 +436,13 @@ function AddressLogbook() {
                 {!address.is_default && (
                   <button
                     onClick={() => handleSetDefault(address.id)}
-                    className="text-blue-600 text-sm mt-3 hover:underline"
+                    className="address-text-button address-default-button"
                   >
                     Set as Default
                   </button>
                 )}
 
-              </div>
+              </article>
             ))}
 
           </div>
@@ -462,11 +450,8 @@ function AddressLogbook() {
       </section>
 
       {/* Back to Account */}
-      <div className="mt-6">
-        <Link
-          to="/account"
-          className="text-blue-600 hover:underline"
-        >
+      <div className="address-logbook-back">
+        <Link to="/account">
           ← Back to My Account
         </Link>
       </div>
