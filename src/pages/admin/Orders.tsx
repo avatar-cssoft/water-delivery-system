@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
-import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
@@ -34,6 +35,61 @@ type DeliveryAssignment = {
 
 type PageState = 'loading' | 'ready' | 'login' | 'denied'
 const NO_RIDER = '__none__'
+const PICKER_WIDTH = 300
+
+type PickerPosition = {
+  top: number
+  left: number
+}
+
+function getPickerPosition(anchor: HTMLElement): PickerPosition {
+  const bounds = anchor.getBoundingClientRect()
+  const rightPosition = bounds.right + 8
+  const left = Math.min(
+    rightPosition,
+    Math.max(8, window.innerWidth - PICKER_WIDTH - 8),
+  )
+  const top = Math.min(Math.max(8, bounds.top), window.innerHeight - 8)
+
+  return { top, left }
+}
+
+function getRiderOptionStyle(selected: boolean): React.CSSProperties {
+  return {
+    width: '100%',
+    padding: '6px 10px',
+    border: `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+    borderRadius: '6px',
+    background: selected ? 'var(--surface)' : 'transparent',
+    color: selected ? 'var(--accent)' : 'var(--text)',
+    textAlign: 'left',
+    font: 'inherit',
+    cursor: 'pointer',
+  }
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  secondaryButton: {
+    padding: '9px 14px',
+    border: '1px solid var(--border)',
+    borderRadius: '6px',
+    background: 'var(--surface)',
+    color: 'var(--text)',
+    font: 'inherit',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  unassignedButton: {
+    padding: '9px 14px',
+    border: '1px solid var(--danger)',
+    borderRadius: '6px',
+    background: 'transparent',
+    color: 'var(--danger)',
+    font: 'inherit',
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+}
 
 function getRiderDisplayName(employee: DeliveryEmployee) {
   const firstInitial = employee.first_name.trim().charAt(0).toUpperCase()
@@ -59,10 +115,53 @@ export default function Orders() {
   const [openAssignmentOrderId, setOpenAssignmentOrderId] = useState<number | null>(
     null,
   )
+  const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null)
+  const [pickerPosition, setPickerPosition] = useState<PickerPosition | null>(
+    null,
+  )
+  const [riderSearch, setRiderSearch] = useState('')
+  const [visibleRiderCount, setVisibleRiderCount] = useState(5)
+  const pickerRef = useRef<HTMLDivElement>(null)
   const [state, setState] = useState<PageState>('loading')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (openAssignmentOrderId === null || !pickerAnchor) return
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !pickerRef.current?.contains(event.target)
+      ) {
+        setOpenAssignmentOrderId(null)
+        setPickerAnchor(null)
+      }
+    }
+    const closeOnOutsideScroll = (event: Event) => {
+      if (
+        event.target instanceof Node &&
+        !pickerRef.current?.contains(event.target)
+      ) {
+        setOpenAssignmentOrderId(null)
+        setPickerAnchor(null)
+      }
+    }
+    const updatePosition = () => {
+      setPickerPosition(getPickerPosition(pickerAnchor))
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer)
+    document.addEventListener('scroll', closeOnOutsideScroll, true)
+    window.addEventListener('resize', updatePosition)
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer)
+      document.removeEventListener('scroll', closeOnOutsideScroll, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [openAssignmentOrderId, pickerAnchor])
 
   useEffect(() => {
     let cancelled = false
@@ -175,8 +274,7 @@ export default function Orders() {
     }
   }, [])
 
-  async function assignOrder(orderId: number) {
-    const selection = selectedRiders[orderId]
+  async function assignOrder(orderId: number, selection = selectedRiders[orderId]) {
     if (!selection) {
       setError('Select a rider before assigning this order.')
       return
@@ -187,6 +285,7 @@ export default function Orders() {
 
     if (employeeId === null && !currentAssignment) {
       setOpenAssignmentOrderId(null)
+      setPickerAnchor(null)
       return
     }
 
@@ -219,6 +318,7 @@ export default function Orders() {
 
       if (!result) {
         setOpenAssignmentOrderId(null)
+        setPickerAnchor(null)
         return
       }
       if (result.error) throw result.error
@@ -238,6 +338,7 @@ export default function Orders() {
         [orderId]: savedAssignment.employee_id ?? NO_RIDER,
       }))
       setOpenAssignmentOrderId(null)
+      setPickerAnchor(null)
       setMessage(
         employeeId === null
           ? `Rider removed from order #${orderId}.`
@@ -289,15 +390,9 @@ export default function Orders() {
           <tbody>
             {orders.map((order) => {
               const assignment = assignments[order.id]
-              const selectedRider = selectedRiders[order.id] ?? ''
               const assignedEmployee = employees.find(
                 (employee) => employee.id === assignment?.employee_id,
               )
-              const unchanged =
-                assignment !== undefined &&
-                ((assignment.employee_id === null &&
-                  selectedRider === NO_RIDER) ||
-                  assignment.employee_id === selectedRider)
               const updating = updatingOrderId === order.id
               const pickerOpen = openAssignmentOrderId === order.id
 
@@ -320,17 +415,27 @@ export default function Orders() {
                         : 'Unassigned'}
                     </td>
                     <td>
-                      <div style={{ position: 'relative' }}>
+                      <div>
                         <button
                           type="button"
                           disabled={employees.length === 0 || updatingOrderId !== null}
                           aria-expanded={pickerOpen}
-                          aria-controls={`rider-picker-${order.id}`}
-                          onClick={() => {
+                          aria-controls={
+                            pickerOpen ? `rider-picker-${order.id}` : undefined
+                          }
+                          onClick={(event) => {
                             setError('')
-                            setOpenAssignmentOrderId(
-                              pickerOpen ? null : order.id,
-                            )
+                            if (pickerOpen) {
+                              setOpenAssignmentOrderId(null)
+                              setPickerAnchor(null)
+                            } else {
+                              const anchor = event.currentTarget
+                              setRiderSearch('')
+                              setVisibleRiderCount(5)
+                              setPickerAnchor(anchor)
+                              setPickerPosition(getPickerPosition(anchor))
+                              setOpenAssignmentOrderId(order.id)
+                            }
                           }}
                         >
                           {updating
@@ -339,92 +444,6 @@ export default function Orders() {
                               ? 'Reassign'
                               : 'Assign'}
                         </button>
-                        {pickerOpen && (
-                          <div
-                            id={`rider-picker-${order.id}`}
-                            style={{
-                              position: 'absolute',
-                              zIndex: 2,
-                              top: 'calc(100% + 6px)',
-                              right: 0,
-                              width: '240px',
-                              maxWidth: '80vw',
-                              padding: '12px',
-                              background: 'var(--card)',
-                              color: 'var(--text)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '6px',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-                            }}
-                          >
-                            <label
-                              htmlFor={`rider-select-${order.id}`}
-                              style={{ display: 'block', marginBottom: '8px' }}
-                            >
-                              Choose a rider
-                            </label>
-                            <select
-                              id={`rider-select-${order.id}`}
-                              aria-label={`Choose rider for order ${order.id}`}
-                              size={Math.min(employees.length, 5)}
-                              value={selectedRider}
-                              disabled={updating}
-                              style={{
-                                width: '100%',
-                                maxHeight: '140px',
-                                overflowY: 'auto',
-                              }}
-                              onChange={(event) =>
-                                setSelectedRiders((current) => ({
-                                  ...current,
-                                  [order.id]: event.target.value,
-                                }))
-                              }
-                            >
-                              <option value="">Select a rider</option>
-                              <option value={NO_RIDER}>None</option>
-                              {employees.map((employee) => (
-                                <option key={employee.id} value={employee.id}>
-                                  {employee.first_name}
-                                  {employee.middle_initial
-                                    ? ` ${employee.middle_initial.trim().charAt(0).toUpperCase()}.`
-                                    : ''}{' '}
-                                  {employee.last_name}
-                                </option>
-                              ))}
-                            </select>
-                            <div
-                              style={{
-                                display: 'flex',
-                                gap: '8px',
-                                marginTop: '10px',
-                              }}
-                            >
-                              <button
-                                type="button"
-                                disabled={
-                                  !selectedRider ||
-                                  unchanged ||
-                                  updatingOrderId !== null
-                                }
-                                onClick={() => void assignOrder(order.id)}
-                              >
-                                {selectedRider === NO_RIDER
-                                  ? 'Confirm Unassignment'
-                                  : assignment?.employee_id
-                                    ? 'Confirm Reassignment'
-                                    : 'Confirm Assignment'}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={updating}
-                                onClick={() => setOpenAssignmentOrderId(null)}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -434,6 +453,174 @@ export default function Orders() {
           </tbody>
         </table>
       )}
+      {openAssignmentOrderId !== null &&
+        pickerPosition !== null &&
+        createPortal(
+          <div
+            ref={pickerRef}
+            id={`rider-picker-${openAssignmentOrderId}`}
+            style={{
+              position: 'fixed',
+              zIndex: 1000,
+              top: pickerPosition.top,
+              left: pickerPosition.left,
+              width: PICKER_WIDTH,
+              maxWidth: 'calc(100vw - 16px)',
+              maxHeight: Math.max(
+                0,
+                window.innerHeight - pickerPosition.top - 8,
+              ),
+              overflowY: 'auto',
+              boxSizing: 'border-box',
+              padding: '16px',
+              background: 'var(--card)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            {(() => {
+              const orderId = openAssignmentOrderId
+              const assignment = assignments[orderId]
+              const selectedRider = selectedRiders[orderId] ?? NO_RIDER
+              const unchanged =
+                assignment === undefined
+                  ? true
+                  : assignment.employee_id === null
+              const updating = updatingOrderId === orderId
+              const filteredRiders = employees.filter((employee) =>
+                `${employee.first_name} ${employee.middle_initial ?? ''} ${employee.last_name}`
+                  .toLowerCase()
+                  .includes(riderSearch.trim().toLowerCase()),
+              )
+              const visibleRiders = filteredRiders.slice(0, visibleRiderCount)
+
+              return (
+                <>
+                  <label
+                    htmlFor={`rider-search-${orderId}`}
+                    style={{ display: 'block', marginBottom: '10px', fontWeight: 600 }}
+                  >
+                    Assign rider to order #{orderId}
+                  </label>
+                  <input
+                    id={`rider-search-${orderId}`}
+                    type="search"
+                    aria-label="Search riders"
+                    placeholder="Search riders..."
+                    value={riderSearch}
+                    disabled={updating}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '9px 10px',
+                      marginBottom: '10px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      background: 'var(--bg)',
+                      color: 'var(--text)',
+                    }}
+                    onChange={(event) => {
+                      setRiderSearch(event.target.value)
+                      setVisibleRiderCount(5)
+                    }}
+                  />
+                  <div
+                    role="listbox"
+                    aria-label={`Choose rider for order ${orderId}`}
+                    style={{
+                      display: 'grid',
+                      gap: '4px',
+                      maxHeight: '126px',
+                      overflowY: 'auto',
+                      padding: '2px',
+                    }}
+                    onScroll={(event) => {
+                      const list = event.currentTarget
+                      if (
+                        list.scrollTop + list.clientHeight >=
+                        list.scrollHeight - 8
+                      ) {
+                        setVisibleRiderCount((current) =>
+                          Math.min(current + 5, filteredRiders.length),
+                        )
+                      }
+                    }}
+                  >
+                    {visibleRiders.map((employee) => (
+                        <button
+                          key={employee.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedRider === employee.id}
+                          disabled={updating}
+                          onClick={() => {
+                            setSelectedRiders((current) => ({
+                              ...current,
+                              [orderId]: employee.id,
+                            }))
+                            void assignOrder(orderId, employee.id)
+                          }}
+                          style={getRiderOptionStyle(
+                            selectedRider === employee.id,
+                          )}
+                        >
+                          {employee.first_name}
+                          {employee.middle_initial
+                            ? ` ${employee.middle_initial.trim().charAt(0).toUpperCase()}.`
+                            : ''}{' '}
+                          {employee.last_name}
+                        </button>
+                      ))}
+                    {filteredRiders.length === 0 && (
+                        <p style={{ color: 'var(--muted)', margin: '8px 4px' }}>
+                          No riders match your search.
+                        </p>
+                      )}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      marginTop: '10px',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      disabled={updating}
+                      onClick={() => {
+                        setOpenAssignmentOrderId(null)
+                        setPickerAnchor(null)
+                      }}
+                      style={styles.secondaryButton}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={unchanged || updatingOrderId !== null}
+                      onClick={() => {
+                        setSelectedRiders((current) => ({
+                          ...current,
+                          [orderId]: NO_RIDER,
+                        }))
+                        void assignOrder(orderId, NO_RIDER)
+                      }}
+                      style={styles.unassignedButton}
+                    >
+                      {updating && selectedRider === NO_RIDER
+                        ? 'Saving...'
+                        : 'Unassign'}
+                    </button>
+                  </div>
+                </>
+              )
+            })()}
+          </div>,
+          document.body,
+        )}
     </section>
   )
 }

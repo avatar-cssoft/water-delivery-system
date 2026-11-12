@@ -15,7 +15,7 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 
-const deliveryEmployees = [
+const defaultDeliveryEmployees = [
   {
     id: 'rider-1',
     first_name: 'Rita',
@@ -29,6 +29,7 @@ const deliveryEmployees = [
     middle_initial: null,
   },
 ]
+let deliveryEmployees = defaultDeliveryEmployees
 
 const orders = [
   {
@@ -84,6 +85,7 @@ describe('Admin order assignment', () => {
       error: null,
     })
     existingAssignments = []
+    deliveryEmployees = defaultDeliveryEmployees
     insertedAssignment = null
     updatedAssignment = null
     queryFilters = []
@@ -172,7 +174,7 @@ describe('Admin order assignment', () => {
     expect(queryFilters).toContainEqual(['department', 'Delivery'])
   })
 
-  it('opens a compact picker with riders listed by their complete available names', async () => {
+  it('opens a searchable picker with riders listed by their complete available names', async () => {
     renderAtOrders()
 
     const orderRow = (await screen.findByRole('cell', { name: '#21' })).closest(
@@ -180,15 +182,101 @@ describe('Admin order assignment', () => {
     )!
     fireEvent.click(within(orderRow).getByRole('button', { name: 'Assign' }))
 
-    expect(
-      await screen.findByRole('option', { name: 'Rita M. Driver' }),
-    ).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: 'Rita M. Driver' })).toBeInTheDocument()
     expect(
       screen.getByRole('option', { name: 'Sam Rider' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Rita M. Driver' })).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search riders' })).toBeInTheDocument()
+  })
+
+  it('renders only the first five riders, loads five more at the scroll bottom, and filters by name', async () => {
+    deliveryEmployees = Array.from({ length: 12 }, (_, index) => ({
+      id: `rider-${index + 1}`,
+      first_name: `Rider${index + 1}`,
+      last_name: 'Employee',
+      middle_initial: null,
+    }))
+    renderAtOrders()
+
+    const orderRow = (await screen.findByRole('cell', { name: '#21' })).closest(
+      'tr',
+    )!
+    fireEvent.click(within(orderRow).getByRole('button', { name: 'Assign' }))
+
+    const listbox = await screen.findByRole('listbox', {
+      name: 'Choose rider for order 21',
+    })
+    expect(screen.getByRole('option', { name: 'Rider5 Employee' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Rider6 Employee' })).not.toBeInTheDocument()
+    expect(within(listbox).getAllByRole('option')).toHaveLength(5)
+
+    Object.defineProperties(listbox, {
+      clientHeight: { configurable: true, value: 126 },
+      scrollHeight: { configurable: true, value: 210 },
+      scrollTop: { configurable: true, value: 84 },
+    })
+    fireEvent.scroll(listbox)
+    expect(await screen.findByRole('option', { name: 'Rider10 Employee' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Rider11 Employee' })).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search riders' }), {
+      target: { value: 'rider12' },
+    })
+    expect(screen.getByRole('option', { name: 'Rider12 Employee' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'Rider1 Employee' })).not.toBeInTheDocument()
+  })
+
+  it('renders the assignment picker as a fixed page overlay and closes it on outside interaction', async () => {
+    renderAtOrders()
+
+    const orderRow = (await screen.findByRole('cell', { name: '#21' })).closest(
+      'tr',
+    )!
+    fireEvent.click(within(orderRow).getByRole('button', { name: 'Assign' }))
+
+    const picker = await screen.findByLabelText('Search riders')
+    expect(picker.parentElement).toHaveStyle({ position: 'fixed' })
     expect(
-      screen.getByRole('listbox', { name: 'Choose rider for order 21' }),
-    ).toHaveAttribute('size', '2')
+      Number.parseFloat(picker.parentElement!.style.left),
+    ).toBeGreaterThanOrEqual(
+      within(orderRow).getByRole('button', { name: 'Assign' }).getBoundingClientRect()
+        .right,
+    )
+
+    fireEvent.pointerDown(document.body)
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('listbox', { name: 'Choose rider for order 21' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it('keeps the picker beside an assignment button near the bottom of the viewport', async () => {
+    renderAtOrders()
+
+    const orderRow = (await screen.findByRole('cell', { name: '#21' })).closest(
+      'tr',
+    )!
+    const assignButton = within(orderRow).getByRole('button', { name: 'Assign' })
+    vi.spyOn(assignButton, 'getBoundingClientRect').mockReturnValue({
+      x: 500,
+      y: 680,
+      top: 680,
+      right: 600,
+      bottom: 710,
+      left: 500,
+      width: 100,
+      height: 30,
+      toJSON: () => ({}),
+    })
+
+    fireEvent.click(assignButton)
+
+    const picker = (await screen.findByLabelText('Search riders')).parentElement!
+    expect(picker.style.top).toBe('680px')
+    expect(picker.style.left).toBe('608px')
+    expect(picker).toHaveStyle({ position: 'fixed', overflowY: 'auto' })
   })
 
   it('assigns an unassigned order to the selected rider', async () => {
@@ -198,13 +286,7 @@ describe('Admin order assignment', () => {
       'tr',
     )!
     fireEvent.click(within(orderRow).getByRole('button', { name: 'Assign' }))
-    fireEvent.change(
-      await screen.findByRole('listbox', { name: 'Choose rider for order 21' }),
-      { target: { value: 'rider-1' } },
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Confirm Assignment' }),
-    )
+    fireEvent.click(await screen.findByRole('option', { name: 'Rita M. Driver' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Order #21 assigned successfully.',
@@ -234,13 +316,7 @@ describe('Admin order assignment', () => {
     )!
     expect(within(orderRow).getByText('Driver, R. M.')).toBeInTheDocument()
     fireEvent.click(within(orderRow).getByRole('button', { name: 'Reassign' }))
-    fireEvent.change(
-      await screen.findByRole('listbox', { name: 'Choose rider for order 21' }),
-      { target: { value: 'rider-2' } },
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Confirm Reassignment' }),
-    )
+    fireEvent.click(await screen.findByRole('option', { name: 'Sam Rider' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Order #21 assigned successfully.',
@@ -271,13 +347,7 @@ describe('Admin order assignment', () => {
       'tr',
     )!
     fireEvent.click(within(orderRow).getByRole('button', { name: 'Assign' }))
-    fireEvent.change(
-      await screen.findByRole('listbox', { name: 'Choose rider for order 21' }),
-      { target: { value: 'rider-2' } },
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Confirm Assignment' }),
-    )
+    fireEvent.click(await screen.findByRole('option', { name: 'Sam Rider' }))
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Order #21 assigned successfully.',
@@ -289,7 +359,7 @@ describe('Admin order assignment', () => {
     expect(insertedAssignment).toBeNull()
   })
 
-  it('lets the admin select None to remove the rider from an assigned order', async () => {
+  it('lets the admin use the Unassign button to remove the rider from an assigned order', async () => {
     existingAssignments = [
       {
         id: 12,
@@ -307,11 +377,10 @@ describe('Admin order assignment', () => {
     fireEvent.click(
       within(orderRow).getByRole('button', { name: 'Reassign' }),
     )
-    fireEvent.change(
-      await screen.findByRole('listbox', { name: 'Choose rider for order 21' }),
-      { target: { value: '__none__' } },
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm Unassignment' }))
+    const cancelButton = await screen.findByRole('button', { name: 'Cancel' })
+    const unassignedButton = screen.getByRole('button', { name: 'Unassign' })
+    expect(cancelButton.compareDocumentPosition(unassignedButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.click(unassignedButton)
 
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Rider removed from order #21.',
