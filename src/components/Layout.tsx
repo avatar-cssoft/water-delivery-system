@@ -6,7 +6,7 @@ import brandMarkImage from '../assets/icons/BrandMark-Placeholder.jpg'
 import { appPath } from '../lib/navigation'
 
 export default function Layout() {
-  const role = useNavRole()
+  const { role, department } = useNavRole()
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
@@ -27,7 +27,13 @@ export default function Layout() {
   // Customers and employees get their own page as Home. Admins keep the public
   // Home, since their dashboard is a set of tools, linked separately.
   const homePath =
-    role === 'customer' ? '/customerHome' : role === 'employee' ? '/employee' : '/'
+    role === 'customer'
+      ? '/customerHome'
+      : role === 'employee'
+        ? department === 'Delivery'
+          ? '/driver'
+          : '/employee'
+        : '/'
 
   // Hiding a link only tidies the nav; pages still check access themselves.
   return (

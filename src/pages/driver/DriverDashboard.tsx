@@ -1,5 +1,6 @@
 
 import React from "react";
+import DriverDeliveries from "./DriverDeliveries";
 
 const DriverDashboard: React.FC = () => {
   return (
@@ -19,42 +20,7 @@ const DriverDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div style={styles.cards}>
-        <div style={styles.card}>
-          <p style={styles.cardLabel}>Assigned Deliveries</p>
-          <h2 style={styles.cardNumber}>0</h2>
-          <p style={styles.cardDescription}>Your assigned orders</p>
-        </div>
-
-        <div style={styles.card}>
-          <p style={styles.cardLabel}>In Progress</p>
-          <h2 style={styles.cardNumber}>0</h2>
-          <p style={styles.cardDescription}>Deliveries on the way</p>
-        </div>
-
-        <div style={styles.card}>
-          <p style={styles.cardLabel}>Completed</p>
-          <h2 style={styles.cardNumber}>0</h2>
-          <p style={styles.cardDescription}>Successfully delivered</p>
-        </div>
-      </div>
-
-      {/* Deliveries Section */}
-      <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>My Deliveries</h2>
-        <p style={styles.sectionSubtitle}>
-          View and manage the orders assigned to you.
-        </p>
-
-        <div style={styles.emptyState}>
-          <h3>No deliveries assigned yet</h3>
-          <p>
-            Your assigned deliveries will appear here once the
-            administrator assigns an order to you.
-          </p>
-        </div>
-      </div>
+      <DriverDeliveries />
     </div>
   );
 };
@@ -63,7 +29,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     padding: "30px",
     minHeight: "100vh",
-    backgroundColor: "#f5f7fb",
+    backgroundColor: "var(--bg)",
     fontFamily: "Arial, sans-serif",
   },
   header: {
@@ -77,74 +43,28 @@ const styles: Record<string, React.CSSProperties> = {
   heading: {
     fontSize: "28px",
     margin: 0,
-    color: "#1e293b",
+    color: "var(--text)",
   },
   subtitle: {
-    color: "#64748b",
+    color: "var(--muted)",
     marginTop: "8px",
   },
   profile: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    color: "#334155",
+    color: "var(--text)",
     fontWeight: "bold",
   },
   avatar: {
     width: "40px",
     height: "40px",
     borderRadius: "50%",
-    backgroundColor: "#2563eb",
-    color: "#ffffff",
+    backgroundColor: "var(--accent)",
+    color: "var(--button-text)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-  },
-  cards: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "20px",
-    marginBottom: "30px",
-  },
-  card: {
-    backgroundColor: "#ffffff",
-    padding: "22px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-  },
-  cardLabel: {
-    color: "#64748b",
-    fontSize: "14px",
-    margin: 0,
-  },
-  cardNumber: {
-    color: "#1e293b",
-    fontSize: "32px",
-    margin: "12px 0",
-  },
-  cardDescription: {
-    color: "#94a3b8",
-    fontSize: "13px",
-    margin: 0,
-  },
-  section: {
-    backgroundColor: "#ffffff",
-    padding: "25px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-  },
-  sectionTitle: {
-    color: "#1e293b",
-    margin: 0,
-  },
-  sectionSubtitle: {
-    color: "#64748b",
-    fontSize: "14px",
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: "45px 20px",
-    color: "#64748b",
   },
 };
 

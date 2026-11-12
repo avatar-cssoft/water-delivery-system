@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
-import { getCurrentUserRole } from '../lib/api/auth'
+import { getCurrentUserProfile } from '../lib/api/auth'
 import { supabase } from '../lib/supabase'
 
 type NavRole = 'checking' | 'guest' | 'customer' | 'employee' | 'admin' | 'signed-in'
+
+type NavIdentity = {
+  role: NavRole
+  department: string | null
+}
 
 function toNavRole(role: string | null): NavRole {
   if (role === null) return 'guest'
@@ -13,7 +18,10 @@ function toNavRole(role: string | null): NavRole {
 }
 
 export function useNavRole() {
-  const [role, setRole] = useState<NavRole>('checking')
+  const [identity, setIdentity] = useState<NavIdentity>({
+    role: 'checking',
+    department: null,
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -22,12 +30,19 @@ export function useNavRole() {
     const loadRole = () => {
       const request = ++latestRequest
 
-      getCurrentUserRole()
-        .then((userRole) => {
-          if (!cancelled && request === latestRequest) setRole(toNavRole(userRole))
+      getCurrentUserProfile()
+        .then((profile) => {
+          if (!cancelled && request === latestRequest) {
+            setIdentity({
+              role: toNavRole(profile?.role ?? null),
+              department: profile?.department ?? null,
+            })
+          }
         })
         .catch(() => {
-          if (!cancelled && request === latestRequest) setRole('signed-in')
+          if (!cancelled && request === latestRequest) {
+            setIdentity({ role: 'signed-in', department: null })
+          }
         })
     }
 
@@ -48,5 +63,5 @@ export function useNavRole() {
     }
   }, [])
 
-  return role
+  return identity
 }
