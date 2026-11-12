@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import {
   getProducts,
@@ -98,7 +97,9 @@ export default function Catalog() {
       {loading ? (
         <p>Loading products...</p>
       ) : error ? (
-        <p role="alert">{error}</p>
+        <p role="alert">
+          {error}
+        </p>
       ) : products.length === 0 ? (
         <p>No products available yet.</p>
       ) : (
@@ -119,7 +120,9 @@ export default function Catalog() {
 
               <button
                 type="button"
-                disabled={!product.available || product.stock <= 0}
+                disabled={
+                  !product.available || product.stock <= 0
+                }
                 onClick={() => handleAddToCart(product)}
               >
                 Add to Cart
