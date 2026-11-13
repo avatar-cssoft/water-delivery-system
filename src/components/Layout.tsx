@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useNavRole } from './useNavRole'
@@ -7,6 +8,7 @@ import { appPath } from '../lib/navigation'
 
 export default function Layout() {
   const { role, department } = useNavRole()
+  const [checkoutComplete, setCheckoutComplete] = useState(false)
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
@@ -38,52 +40,56 @@ export default function Layout() {
   // Hiding a link only tidies the nav; pages still check access themselves.
   return (
     <div className="app-shell">
-      <header className="site-header">
-        <nav className="site-nav" aria-label="Main">
+      {!checkoutComplete && (
+        <header className="site-header">
+          <nav className="site-nav" aria-label="Main">
 
-          <span className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <img src={brandMarkImage} alt="" />
+            <span className="brand">
+              <span className="brand-mark" aria-hidden="true">
+                <img src={brandMarkImage} alt="" />
+              </span>
+
+              Water Delivery
             </span>
-
-            Water Delivery
-          </span>
-          <div className="nav-links">
-            <NavLink to={homePath} end>
-              Home
-            </NavLink>
-            <NavLink to="/catalog">Products</NavLink>
-            {showCart && <NavLink to="/cart">Cart</NavLink>}
-            {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
-            {signedIn && <NavLink to="/account">My Account</NavLink>}
-            <NavLink to="/settings">Settings</NavLink>
-            {role === 'guest' && <NavLink to="/login">Log in</NavLink>}
-            {role === 'guest' && (
-              <NavLink to="/register" className="nav-cta">
-                Register
+            <div className="nav-links">
+              <NavLink to={homePath} end>
+                Home
               </NavLink>
-            )}
-            {signedIn && (
-              <button className="nav-logout" type="button" onClick={handleLogout}>
-                Logout
-              </button>
-            )}
-          </div>
-        </nav>
-      </header>
+              <NavLink to="/catalog">Products</NavLink>
+              {showCart && <NavLink to="/cart">Cart</NavLink>}
+              {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
+              {signedIn && <NavLink to="/account">My Account</NavLink>}
+              <NavLink to="/settings">Settings</NavLink>
+              {role === 'guest' && <NavLink to="/login">Log in</NavLink>}
+              {role === 'guest' && (
+                <NavLink to="/register" className="nav-cta">
+                  Register
+                </NavLink>
+              )}
+              {signedIn && (
+                <button className="nav-logout" type="button" onClick={handleLogout}>
+                  Logout
+                </button>
+              )}
+            </div>
+          </nav>
+        </header>
+      )}
       {/* A div, not <main>: some pages render their own <main>. */}
       <div className="main">
-        <Outlet />
+        <Outlet context={{ setCheckoutComplete }} />
       </div>
-      <footer className="site-footer">
-        <div className="site-footer-content">
-          <span>© {new Date().getFullYear()} Water Delivery</span>
-          <nav aria-label="Footer">
-            <NavLink to={homePath}>Home</NavLink>
-            <NavLink to="/catalog">Products</NavLink>
-          </nav>
-        </div>
-      </footer>
+      {!checkoutComplete && (
+        <footer className="site-footer">
+          <div className="site-footer-content">
+            <span>© {new Date().getFullYear()} Water Delivery</span>
+            <nav aria-label="Footer">
+              <NavLink to={homePath}>Home</NavLink>
+              <NavLink to="/catalog">Products</NavLink>
+            </nav>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }
