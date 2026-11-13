@@ -87,7 +87,10 @@ beforeEach(() => {
   getProfile.mockReset()
   getProfile.mockResolvedValue({ data: { address: savedAddress }, error: null })
   getOrder.mockReset()
-  getOrder.mockResolvedValue({ data: { id: 123 }, error: null })
+  getOrder.mockResolvedValue({
+    data: { id: 123, order_reference: 'ORD-123' },
+    error: null,
+  })
   insertOrder.mockReset()
   insertItems.mockReset()
   insertItems.mockResolvedValue({ error: null })
@@ -144,7 +147,7 @@ describe('Checkout confirmation', () => {
       .toBeInTheDocument()
     expect(await screen.findByRole(
       'heading',
-      { name: 'Reference number' },
+      { name: 'Order Reference Number' },
       { timeout: 3000 },
     ))
       .toBeInTheDocument()
@@ -152,15 +155,82 @@ describe('Checkout confirmation', () => {
       .not.toBeInTheDocument()
     expect(screen.queryByText('123')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Delivery Address')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Order reference number' }))
+      .toHaveValue('ORD-123')
+    expect(screen.getByRole('textbox', { name: 'Order reference number' }))
+      .toHaveAttribute('readonly')
     expect(screen.getByRole('progressbar', { name: 'Time until redirect' }))
       .toHaveAttribute('aria-valuenow', '5000')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy reference number' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy order reference' }))
     await screen.findByText('Reference number copied.')
-    expect(writeText).toHaveBeenCalledWith('123')
+    expect(writeText).toHaveBeenCalledWith('ORD-123')
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeDisabled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Keep Looking' }))
     expect(await screen.findByText('Catalog page')).toBeInTheDocument()
+  })
+
+  it('briefly shows a check after copying, then restores the copy button', async () => {
+    vi.useFakeTimers()
+
+    try {
+      const writeText = vi.fn().mockResolvedValue(undefined)
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText },
+      })
+      renderCheckout()
+
+      await act(async () => {
+        await Promise.resolve()
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Place Order' }))
+      await act(async () => {
+        await Promise.resolve()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1500)
+      })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Copy order reference' }))
+        await Promise.resolve()
+      })
+      expect(screen.getByRole('button', { name: 'Copied' })).toBeDisabled()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1400)
+      })
+      expect(screen.getByRole('button', { name: 'Copy order reference' }))
+        .toBeEnabled()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Copy order reference' }))
+        await Promise.resolve()
+      })
+      expect(writeText).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('reports when the database did not generate an order reference', async () => {
+    getOrder.mockResolvedValue({
+      data: { id: 123, order_reference: null },
+      error: null,
+    })
+    renderCheckout()
+
+    await screen.findByDisplayValue(savedAddress)
+    fireEvent.click(await screen.findByRole('button', { name: 'Place Order' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'reference number was not generated',
+    )
+    expect(insertItems).not.toHaveBeenCalled()
   })
 
   it('redirects to customer home after a smooth five-second countdown', async () => {
@@ -187,7 +257,7 @@ describe('Checkout confirmation', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1)
     })
-    expect(screen.getByRole('heading', { name: 'Reference number' }))
+    expect(screen.getByRole('heading', { name: 'Order Reference Number' }))
       .toBeInTheDocument()
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250)
@@ -197,7 +267,7 @@ describe('Checkout confirmation', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(4749)
     })
-    expect(screen.getByRole('heading', { name: 'Reference number' }))
+    expect(screen.getByRole('heading', { name: 'Order Reference Number' }))
       .toBeInTheDocument()
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1)

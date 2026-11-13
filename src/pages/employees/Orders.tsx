@@ -12,6 +12,7 @@ type Profile = {
 
 type Order = {
   id: number
+  order_reference: string | null
   user_id: string
   order_date: string
   status: string
@@ -84,6 +85,7 @@ function Orders() {
         .from('orders')
         .select(`
           id,
+          order_reference,
           user_id,
           order_date,
           status,
@@ -118,8 +120,8 @@ function Orders() {
     }
   }
 
-  async function updateStatus(orderId: number, newStatus: string) {
-    setUpdatingId(orderId)
+  async function updateStatus(order: Order, newStatus: string) {
+    setUpdatingId(order.id)
     setError('')
     setMessage('')
 
@@ -127,41 +129,45 @@ function Orders() {
       const { data, error: updateError } = await supabase
         .from('orders')
         .update({ status: newStatus })
-        .eq('id', orderId)
+        .eq('id', order.id)
         .select('id, status')
         .maybeSingle()
 
       if (updateError) {
         setError(
-          `Failed to update order #${orderId}: ${updateError.message}`,
+          `Failed to update order ${getOrderReference(order)}: ${updateError.message}`,
         )
         return
       }
 
       if (!data) {
         setError(
-          `Order #${orderId} was not updated. Check your Supabase UPDATE policy and permissions.`,
+          `Order ${getOrderReference(order)} was not updated. Check your Supabase UPDATE policy and permissions.`,
         )
         return
       }
 
       setOrders((currentOrders) =>
-        currentOrders.map((order) =>
-          order.id === orderId
-            ? { ...order, status: data.status }
-            : order,
+        currentOrders.map((currentOrder) =>
+          currentOrder.id === order.id
+            ? { ...currentOrder, status: data.status }
+            : currentOrder,
         ),
       )
 
-      setMessage(`Order #${orderId} status updated successfully.`)
+      setMessage(`Order ${getOrderReference(order)} status updated successfully.`)
     } catch (err) {
       console.error('Unexpected status update error:', err)
       setError(
-        `An unexpected error occurred updating order #${orderId}.`,
+        `An unexpected error occurred updating order ${getOrderReference(order)}.`,
       )
     } finally {
       setUpdatingId(null)
     }
+  }
+
+  function getOrderReference(order: Order) {
+    return order.order_reference || 'reference unavailable'
   }
 
   function getCustomerName(order: Order) {
@@ -244,7 +250,7 @@ function Orders() {
             <table style={tableStyle}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--surface)' }}>
-                  <th style={cellStyle}>Order ID</th>
+                  <th style={cellStyle}>Order Reference #</th>
                   <th style={cellStyle}>Customer Name</th>
                   <th style={cellStyle}>Order Date</th>
                   <th style={cellStyle}>Delivery Address</th>
@@ -261,7 +267,7 @@ function Orders() {
 
                   return (
                     <tr key={order.id}>
-                      <td style={cellStyle}>{order.id}</td>
+                      <td style={cellStyle}>{getOrderReference(order)}</td>
                       <td style={cellStyle}>{getCustomerName(order)}</td>
                       <td style={cellStyle}>
                         {formatDate(order.order_date)}
@@ -272,11 +278,11 @@ function Orders() {
                       </td>
                       <td style={cellStyle}>
                         <select
-                          aria-label={`Status for order ${order.id}`}
+                          aria-label={`Status for order ${getOrderReference(order)}`}
                           value={order.status}
                           disabled={updatingId !== null}
                           onChange={(event) =>
-                            void updateStatus(order.id, event.target.value)
+                            void updateStatus(order, event.target.value)
                           }
                           style={selectStyle}
                         >

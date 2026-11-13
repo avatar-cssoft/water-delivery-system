@@ -40,41 +40,42 @@ export default function Layout() {
   // Hiding a link only tidies the nav; pages still check access themselves.
   return (
     <div className="app-shell">
-      {!checkoutComplete && (
-        <header className="site-header">
-          <nav className="site-nav" aria-label="Main">
+      <header
+        className={`site-header${checkoutComplete ? ' site-header--hidden' : ''}`}
+        aria-hidden={checkoutComplete}
+      >
+        <nav className="site-nav" aria-label="Main">
 
-            <span className="brand">
-              <span className="brand-mark" aria-hidden="true">
-                <img src={brandMarkImage} alt="" />
-              </span>
-
-              Water Delivery
+          <span className="brand">
+            <span className="brand-mark" aria-hidden="true">
+              <img src={brandMarkImage} alt="" />
             </span>
-            <div className="nav-links">
-              <NavLink to={homePath} end>
-                Home
+
+            Water Delivery
+          </span>
+          <div className="nav-links">
+            <NavLink to={homePath} end>
+              Home
+            </NavLink>
+            <NavLink to="/catalog">Products</NavLink>
+            {showCart && <NavLink to="/cart">Cart</NavLink>}
+            {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
+            {signedIn && <NavLink to="/account">My Account</NavLink>}
+            <NavLink to="/settings">Settings</NavLink>
+            {role === 'guest' && <NavLink to="/login">Log in</NavLink>}
+            {role === 'guest' && (
+              <NavLink to="/register" className="nav-cta">
+                Register
               </NavLink>
-              <NavLink to="/catalog">Products</NavLink>
-              {showCart && <NavLink to="/cart">Cart</NavLink>}
-              {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
-              {signedIn && <NavLink to="/account">My Account</NavLink>}
-              <NavLink to="/settings">Settings</NavLink>
-              {role === 'guest' && <NavLink to="/login">Log in</NavLink>}
-              {role === 'guest' && (
-                <NavLink to="/register" className="nav-cta">
-                  Register
-                </NavLink>
-              )}
-              {signedIn && (
-                <button className="nav-logout" type="button" onClick={handleLogout}>
-                  Logout
-                </button>
-              )}
-            </div>
-          </nav>
-        </header>
-      )}
+            )}
+            {signedIn && (
+              <button className="nav-logout" type="button" onClick={handleLogout}>
+                Logout
+              </button>
+            )}
+          </div>
+        </nav>
+      </header>
       {/* A div, not <main>: some pages render their own <main>. */}
       <div className="main">
         <Outlet context={{ setCheckoutComplete }} />

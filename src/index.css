@@ -35,6 +35,10 @@ body {
   background: var(--bg);
 }
 
+.site-header--hidden {
+  visibility: hidden;
+}
+
 .site-nav {
   display: flex;
   align-items: center;
@@ -237,6 +241,203 @@ body {
   color: var(--accent-hover);
 }
 
+.main .customer-home-title {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+}
+
+.customer-home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(110px, 0.72fr) minmax(130px, 1fr);
+  grid-template-rows: repeat(2, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.main .customer-home-tile {
+  display: flex;
+  min-width: 0;
+  min-height: 152px;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 400;
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.main .customer-home-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: #1c2b36;
+  color: var(--text);
+}
+
+.main .customer-home-tile--browse {
+  position: relative;
+  grid-row: 1 / 3;
+  min-height: 320px;
+  align-items: flex-start;
+  overflow: hidden;
+  padding: 22px;
+  background: linear-gradient(135deg, #1a2a35, #14212b);
+}
+
+.customer-home-tile--browse .customer-home-tile-content {
+  z-index: 1;
+  max-width: 55%;
+}
+
+.customer-home-tile--cart,
+.customer-home-tile--account {
+  grid-row: 1;
+}
+
+.customer-home-tile--cart {
+  grid-column: 2;
+}
+
+.customer-home-tile--account {
+  grid-column: 3;
+}
+
+.customer-home-product-image {
+  position: absolute;
+  right: 10px;
+  bottom: 0;
+  width: 48%;
+  max-width: 260px;
+  height: 88%;
+  max-height: 290px;
+  object-fit: contain;
+  object-position: right bottom;
+  pointer-events: none;
+}
+
+.customer-home-tile--browse .customer-home-tile-arrow {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  right: 18px;
+}
+
+.main .customer-home-tile:focus-visible {
+  outline: 3px solid rgb(85 197 237 / 45%);
+  outline-offset: 3px;
+}
+
+.customer-home-tile-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  border: 1px solid rgb(85 197 237 / 24%);
+  border-radius: 13px;
+  background: rgb(85 197 237 / 10%);
+  color: var(--accent);
+}
+
+.customer-home-tile-icon svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.customer-home-tile-content {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+}
+
+.customer-home-tile-content strong {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.customer-home-tile-content > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.customer-home-tile-arrow {
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.customer-home-tile:hover .customer-home-tile-arrow {
+  transform: translateX(3px);
+  color: var(--accent);
+}
+
+@media (max-width: 680px) {
+  .customer-home-grid {
+    grid-template-columns: minmax(0, 2.2fr) minmax(96px, 1fr);
+    grid-template-rows: 0.43fr 1fr;
+    gap: 12px;
+  }
+
+  .main .customer-home-tile--browse {
+    grid-row: 1 / 3;
+    min-height: 400px;
+    padding: 16px;
+  }
+
+  .customer-home-product-image {
+    right: 4px;
+    width: 60%;
+    height: 86%;
+    max-height: 340px;
+  }
+
+  .customer-home-tile--cart {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .customer-home-tile--account {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .main .customer-home-tile--cart,
+  .main .customer-home-tile--account {
+    min-height: 0;
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .customer-home-tile--cart .customer-home-tile-icon,
+  .customer-home-tile--account .customer-home-tile-icon,
+  .customer-home-tile--cart .customer-home-tile-arrow,
+  .customer-home-tile--account .customer-home-tile-arrow,
+  .customer-home-tile--cart .customer-home-tile-content > span,
+  .customer-home-tile--account .customer-home-tile-content > span {
+    display: none;
+  }
+
+  .customer-home-tile--cart .customer-home-tile-content strong,
+  .customer-home-tile--account .customer-home-tile-content strong {
+    font-size: 14px;
+  }
+}
+
 .main .settings-actions {
   display: flex;
   flex-wrap: wrap;
@@ -429,6 +630,88 @@ body {
   font-size: 1.85rem;
 }
 
+.checkout-reference-row {
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.main input.checkout-reference-value {
+  width: auto;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.main .checkout-reference-copy {
+  display: grid;
+  min-width: 104px;
+  place-items: center;
+}
+
+.main .checkout-reference-copy.is-copied {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+}
+
+.checkout-copy-check {
+  width: 22px;
+  height: 22px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: checkout-copy-pop 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.checkout-copy-check path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkout-copy-draw 340ms 100ms ease-out forwards;
+}
+
+.checkout-copy-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.checkout-confirmation .checkout-copy-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+@keyframes checkout-copy-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-12deg);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(1.15) rotate(4deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes checkout-copy-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 .checkout-order-placed {
   align-content: center;
 }
@@ -514,9 +797,19 @@ body {
     animation: none;
   }
 
-  .checkout-success-icon path {
+  .checkout-success-icon path,
+  .checkout-copy-check {
     animation-duration: 350ms;
     animation-delay: 0ms;
+  }
+
+  .checkout-copy-check {
+    animation: none;
+  }
+
+  .checkout-copy-check path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 
@@ -765,7 +1058,7 @@ body {
   margin-top: 0;
 }
 
-.main nav:not(.site-nav) {
+.main nav:not(.site-nav):not(.customer-home-grid) {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;

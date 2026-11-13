@@ -1,7 +1,8 @@
 
+import { NavLink } from 'react-router-dom'
+import gallonImage from '../../assets/images/products/Gallon.png'
 import { getCart } from '../../lib/cart'
 import { formatPrice } from '../../lib/api/products'
-import { appPath } from '../../lib/navigation'
 
 export default function CustomerHome() {
   const cart = getCart()
@@ -19,70 +20,63 @@ export default function CustomerHome() {
 
   return (
     <main>
-      <h1>Water Delivery System</h1>
-      <h2>Customer Home</h2>
+      <h1 className="customer-home-title">Customer Home</h1>
 
       <p>Welcome! What would you like to do today?</p>
 
-      <section>
-        <h3>Shop Water Products</h3>
-        <p>Browse our available water products.</p>
-
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = appPath('/catalog')
-          }}
+      <nav className="customer-home-grid" aria-label="Customer shortcuts">
+        <NavLink
+          className="customer-home-tile customer-home-tile--browse"
+          to="/catalog"
         >
-          Browse Products
-        </button>
-      </section>
+          <span className="customer-home-tile-content">
+            <strong>Browse Products</strong>
+            <span>Explore available water products.</span>
+          </span>
+          <img
+            className="customer-home-product-image"
+            src={gallonImage}
+            alt=""
+          />
+          <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
+        </NavLink>
 
-      <section>
-        <h3>My Cart</h3>
+        <NavLink className="customer-home-tile customer-home-tile--cart" to="/cart">
+          <span className="customer-home-tile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 1.9-1.5L21 8H6" />
+              <circle cx="10" cy="19" r="1" />
+              <circle cx="18" cy="19" r="1" />
+            </svg>
+          </span>
+          <span className="customer-home-tile-content">
+            <strong>My Cart</strong>
+            <span>
+              {totalItems === 0
+                ? 'Your cart is empty.'
+                : `${totalItems} ${totalItems === 1 ? 'item' : 'items'} · ${formatPrice(totalPrice)}`}
+            </span>
+          </span>
+          <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
+        </NavLink>
 
-        <p>
-          Items in cart: {totalItems}
-        </p>
-
-        <p>
-          Cart total: {formatPrice(totalPrice)}
-        </p>
-
-        {cart.length === 0 ? (
-          <p>Your cart is empty.</p>
-        ) : (
-          <ul>
-            {cart.map((item) => (
-              <li key={item.product.id}>
-                {item.product.name} × {item.quantity}
-                {' — '}
-                {formatPrice(
-                  item.product.price * item.quantity,
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <button
-          type="button"
-          onClick={() => {
-            window.location.href = appPath('/cart')
-          }}
+        <NavLink
+          className="customer-home-tile customer-home-tile--account"
+          to="/account"
         >
-          View My Cart
-        </button>
-      </section>
-
-      <button
-        type="button"
-        onClick={() => {
-          window.location.href = appPath('/account')
-        }}
-      >
-        My Account
-      </button>
+          <span className="customer-home-tile-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21a8 8 0 0 1 16 0" />
+            </svg>
+          </span>
+          <span className="customer-home-tile-content">
+            <strong>My Account</strong>
+            <span>View your profile and account settings.</span>
+          </span>
+          <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
+        </NavLink>
+      </nav>
     </main>
   )
 }

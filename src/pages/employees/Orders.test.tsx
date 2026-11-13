@@ -4,6 +4,7 @@ import Orders from './Orders'
 
 const getCurrentUserRole = vi.fn<() => Promise<string | null>>()
 const loadOrders = vi.fn()
+const selectOrders = vi.fn()
 
 vi.mock('../../lib/api/auth', () => ({
   getCurrentUserRole: () => getCurrentUserRole(),
@@ -11,7 +12,10 @@ vi.mock('../../lib/api/auth', () => ({
 
 vi.mock('../../lib/supabase', () => {
   const query = {
-    select: () => query,
+    select: (columns: string) => {
+      selectOrders(columns)
+      return query
+    },
     order: () => loadOrders(),
   }
   return { supabase: { from: () => query } }
@@ -19,6 +23,7 @@ vi.mock('../../lib/supabase', () => {
 
 const order = {
   id: 7,
+  order_reference: 'ORD-7',
   user_id: 'u1',
   order_date: '2026-10-26T10:00:00Z',
   status: 'pending',
@@ -34,6 +39,7 @@ beforeEach(() => {
   Object.defineProperty(window, 'location', { value: { href: '' }, writable: true })
   getCurrentUserRole.mockReset()
   loadOrders.mockReset()
+  selectOrders.mockReset()
   loadOrders.mockResolvedValue({ data: [order], error: null })
 })
 
@@ -46,6 +52,12 @@ describe('Orders access', () => {
     getCurrentUserRole.mockResolvedValue(role)
     render(<Orders />)
     expect(await screen.findByText('12 Session Road, Baguio City')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Order Reference #' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'ORD-7' })).toBeInTheDocument()
+    expect(screen.queryByRole('cell', { name: /^7$/ }))
+      .not.toBeInTheDocument()
+    expect(selectOrders).toHaveBeenCalledWith(expect.stringContaining('order_reference'))
     expect(window.location.href).toBe('')
   })
 

@@ -18,7 +18,7 @@ export default function Checkout() {
   const [showOrderPlaced, setShowOrderPlaced] = useState(false)
   const [orderReference, setOrderReference] = useState<string | null>(null)
   const [millisecondsLeft, setMillisecondsLeft] = useState(5000)
-  const [copyMessage, setCopyMessage] = useState('')
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
 
   const cart = getCart()
   const total = cart.reduce(
@@ -55,6 +55,16 @@ export default function Checkout() {
       window.clearTimeout(redirect)
     }
   }, [navigate, orderReference])
+
+  useEffect(() => {
+    if (copyState !== 'copied') return
+
+    const resetCopyState = window.setTimeout(() => {
+      setCopyState('idle')
+    }, 1400)
+
+    return () => window.clearTimeout(resetCopyState)
+  }, [copyState])
 
   // Start with the address saved on the customer's profile. They can still
   // change it for this order; the profile itself isn't updated.
@@ -124,10 +134,15 @@ export default function Checkout() {
           total_amount: total,
           status: 'pending',
         })
-        .select('id')
+        .select('id, order_reference')
         .single()
 
       if (orderError) throw orderError
+      if (!order.order_reference) {
+        throw new Error(
+          `Order #${order.id} was created, but its reference number was not generated. Configure a database default or trigger for order_reference.`,
+        )
+      }
 
       // Save each product belonging to this order.
       const orderItems = cart.map((item) => ({
@@ -149,7 +164,7 @@ export default function Checkout() {
 
       clearCart()
       setCheckoutComplete?.(true)
-      setPendingOrderReference(String(order.id))
+      setPendingOrderReference(order.order_reference)
       setShowOrderPlaced(true)
     } catch (err: unknown) {
       setError(
@@ -163,13 +178,24 @@ export default function Checkout() {
   }
 
   async function copyReference() {
+    if (!orderReference) {
+      setCopyState('error')
+      return
+    }
+
     try {
-      await navigator.clipboard.writeText(orderReference ?? '')
-      setCopyMessage('Reference number copied.')
+      await navigator.clipboard.writeText(orderReference)
+      setCopyState('copied')
     } catch {
-      setCopyMessage('Unable to copy the reference number. Please copy it manually.')
+      setCopyState('error')
     }
   }
+
+  const copyMessage = copyState === 'copied'
+    ? 'Reference number copied.'
+    : copyState === 'error'
+      ? 'Unable to copy the reference number. Please copy it manually.'
+      : ''
 
   if (showOrderPlaced) {
     return (
@@ -187,11 +213,39 @@ export default function Checkout() {
   if (orderReference) {
     return (
       <main className="checkout-confirmation">
-        <h1>Reference number</h1>
-        <button type="button" onClick={copyReference}>
-          Copy reference number
-        </button>
-        <p role="status" aria-live="polite">{copyMessage}</p>
+        <h1>Order Reference Number</h1>
+        <div className="checkout-reference-row">
+          <input
+            className="profile-readonly-address checkout-reference-value"
+            type="text"
+            value={orderReference}
+            readOnly
+            aria-readonly="true"
+            aria-label="Order reference number"
+          />
+          <button
+            className={`checkout-reference-copy${copyState === 'copied' ? ' is-copied' : ''}`}
+            type="button"
+            onClick={copyReference}
+            disabled={copyState === 'copied'}
+            aria-label={copyState === 'copied' ? 'Copied' : 'Copy order reference'}
+          >
+            {copyState === 'copied' ? (
+              <svg className="checkout-copy-check" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m5 12 4 4L19 6" />
+              </svg>
+            ) : (
+              'Copy'
+            )}
+          </button>
+        </div>
+        <p
+          className={copyState === 'error' ? 'checkout-copy-error' : 'checkout-copy-status'}
+          role="status"
+          aria-live="polite"
+        >
+          {copyMessage}
+        </p>
         <p>
           Redirecting you to customer home in{' '}
           {Math.ceil(millisecondsLeft / 1000)} seconds.

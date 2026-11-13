@@ -10,6 +10,7 @@ type Delivery = {
 
 type Order = {
   id: number
+  order_reference: string | null
   user_id: string
   order_date: string | null
   status: string
@@ -78,7 +79,7 @@ export default function DriverDeliveries() {
           const { data: orderData, error: ordersError } = await supabase
             .from('orders')
             .select(
-              'id, user_id, order_date, status, total_amount, delivery_address',
+              'id, order_reference, user_id, order_date, status, total_amount, delivery_address',
             )
             .in(
               'id',
@@ -202,7 +203,11 @@ export default function DriverDeliveries() {
             {assignedOrders.map(({ delivery, order }) => (
               <article key={delivery.id} style={styles.orderCard}>
                 <div style={styles.orderHeader}>
-                  <h3 style={styles.orderTitle}>Order #{delivery.order_id}</h3>
+                  <h3 style={styles.orderTitle}>
+                    {order?.order_reference
+                      ? `Order #${order.order_reference}`
+                      : 'Order reference unavailable'}
+                  </h3>
                   <span style={styles.deliveryStatus}>
                     {formatStatus(delivery.status)}
                   </span>
