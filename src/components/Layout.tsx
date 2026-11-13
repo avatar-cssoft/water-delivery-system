@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useNavRole } from './useNavRole'
@@ -7,6 +8,7 @@ import { appPath } from '../lib/navigation'
 
 export default function Layout() {
   const { role, department } = useNavRole()
+  const [checkoutComplete, setCheckoutComplete] = useState(false)
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut()
@@ -38,7 +40,10 @@ export default function Layout() {
   // Hiding a link only tidies the nav; pages still check access themselves.
   return (
     <div className="app-shell">
-      <header className="site-header">
+      <header
+        className={`site-header${checkoutComplete ? ' site-header--hidden' : ''}`}
+        aria-hidden={checkoutComplete}
+      >
         <nav className="site-nav" aria-label="Main">
 
           <span className="brand">
@@ -73,17 +78,19 @@ export default function Layout() {
       </header>
       {/* A div, not <main>: some pages render their own <main>. */}
       <div className="main">
-        <Outlet />
+        <Outlet context={{ setCheckoutComplete }} />
       </div>
-      <footer className="site-footer">
-        <div className="site-footer-content">
-          <span>© {new Date().getFullYear()} Water Delivery</span>
-          <nav aria-label="Footer">
-            <NavLink to={homePath}>Home</NavLink>
-            <NavLink to="/catalog">Products</NavLink>
-          </nav>
-        </div>
-      </footer>
+      {!checkoutComplete && (
+        <footer className="site-footer">
+          <div className="site-footer-content">
+            <span>© {new Date().getFullYear()} Water Delivery</span>
+            <nav aria-label="Footer">
+              <NavLink to={homePath}>Home</NavLink>
+              <NavLink to="/catalog">Products</NavLink>
+            </nav>
+          </div>
+        </footer>
+      )}
     </div>
   )
 }

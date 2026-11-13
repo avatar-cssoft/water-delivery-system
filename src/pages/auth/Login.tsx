@@ -71,7 +71,7 @@ function Login() {
       }
 
       // Customer account
-      if (profile.role === 'customer') {
+      if (profile.role === 'customer' || profile.role === 'user') {
         window.location.href = appPath('/customerHome')
         return
       }

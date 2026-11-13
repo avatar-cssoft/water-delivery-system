@@ -143,6 +143,27 @@ describe('App routes (signed-out guest)', () => {
     expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
   })
 
+  it('shows customer shortcuts as full-card links', () => {
+    renderAt('/customerHome')
+
+    const shortcuts = screen.getByRole('navigation', {
+      name: 'Customer shortcuts',
+    })
+
+    expect(
+      within(shortcuts).getByRole('link', { name: /Browse Products/ }),
+    ).toHaveAttribute('href', '/catalog')
+    expect(
+      within(shortcuts).getByRole('link', { name: /My Cart/ }),
+    ).toHaveAttribute('href', '/cart')
+    expect(
+      within(shortcuts).getByRole('link', { name: /My Account/ }),
+    ).toHaveAttribute('href', '/account')
+    expect(
+      within(shortcuts).queryByRole('button'),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows footer navigation and copyright', () => {
     renderAt('/employee/orders')
     expect(
