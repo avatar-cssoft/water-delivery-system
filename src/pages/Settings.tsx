@@ -11,6 +11,11 @@ export default function Settings() {
       <p>Adjust your preferences for a more comfortable experience.</p>
       <nav className="settings-actions" aria-label="Settings">
         {signedIn && (
+          <Link className="settings-action" to="/account/change-password">
+            Change Password
+          </Link>
+        )}
+        {signedIn && (
           <Link className="settings-action" to="/account/address-logbook">
             Address Logbook
           </Link>

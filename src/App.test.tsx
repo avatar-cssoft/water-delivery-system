@@ -184,6 +184,9 @@ describe('App routes (signed-out guest)', () => {
       screen.queryByRole('link', { name: 'Address Logbook' }),
     ).not.toBeInTheDocument()
     expect(
+      screen.queryByRole('link', { name: 'Change Password' }),
+    ).not.toBeInTheDocument()
+    expect(
       screen.getByRole('link', { name: 'Accessibility' }),
     ).toBeInTheDocument()
 
@@ -194,6 +197,15 @@ describe('App routes (signed-out guest)', () => {
     expect(
       screen.getByRole('link', { name: 'Back to Settings' }),
     ).toHaveClass('settings-action')
+  })
+
+  it('shows the Change Password link only to signed-in users', async () => {
+    setProfile('user')
+    renderAt('/settings')
+
+    expect(
+      await screen.findByRole('link', { name: 'Change Password' }),
+    ).toHaveAttribute('href', '/account/change-password')
   })
 
   it('applies and saves accessibility choices across the app', async () => {

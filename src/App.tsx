@@ -9,6 +9,7 @@ import NotFound from './pages/NotFound'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import AddressLogbook from './pages/users/AddressLogbook'
+import ChangePassword from './pages/users/ChangePassword'
 import UserAccounts from './pages/users/UserAccount'
 import Settings from './pages/Settings'
 import Accessibility from './pages/Accessibility'
@@ -84,6 +85,7 @@ export default function App() {
             {/* User account */}
             <Route path="account" element={<UserAccounts />} />
             <Route path="account/address-logbook" element={<AddressLogbook />} />
+            <Route path="account/change-password" element={<ChangePassword />} />
 
             <Route path="settings" element={<Settings />} />
             <Route path="accessibility" element={<Accessibility />} />
