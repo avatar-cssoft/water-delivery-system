@@ -14,8 +14,7 @@ export default function Accessibility() {
     <section className="accessibility-page">
       <h1>Accessibility</h1>
       <p className="accessibility-intro">
-        Make the pages easier to read. Your choices are saved on this device
-        and apply throughout the app.
+        Make the pages easier to read.
       </p>
 
       <fieldset className="accessibility-options">
@@ -97,18 +96,10 @@ export default function Accessibility() {
         </div>
       </fieldset>
 
-      <aside className="accessibility-limitations">
-        <h2>What to expect</h2>
-        <p>
-          These settings change the app’s colors and text. Some images, maps,
-          embedded content, or elements with fixed-size designs may not change
-          in the same way. New pages using custom colors or fixed pixel text may
-          also need extra styling to follow these preferences. You can use your
-          browser’s zoom to enlarge the whole page.
-        </p>
-      </aside>
-
       <div className="accessibility-actions">
+        <Link className="settings-action" to="/settings">
+          Back to Settings
+        </Link>
         <button
           type="button"
           className="accessibility-reset"
@@ -116,7 +107,6 @@ export default function Accessibility() {
         >
           Reset to defaults
         </button>
-        <Link to="/settings">Back to Settings</Link>
       </div>
     </section>
   )

@@ -191,6 +191,9 @@ describe('App routes (signed-out guest)', () => {
     expect(
       screen.getByRole('heading', { name: 'Accessibility' }),
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'Back to Settings' }),
+    ).toHaveClass('settings-action')
   })
 
   it('applies and saves accessibility choices across the app', async () => {

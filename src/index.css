@@ -1183,23 +1183,6 @@ body {
   color: var(--muted);
 }
 
-.accessibility-limitations {
-  margin: 24px 0;
-  padding: 16px 18px;
-  border-left: 4px solid var(--accent);
-  border-radius: 4px 10px 10px 4px;
-  background: var(--surface);
-}
-
-.accessibility-limitations h2 {
-  margin: 0 0 8px;
-  font-size: 1rem;
-}
-
-.accessibility-limitations p {
-  margin: 0;
-}
-
 .accessibility-actions {
   display: flex;
   flex-wrap: wrap;
