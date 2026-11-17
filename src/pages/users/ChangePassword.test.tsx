@@ -5,7 +5,6 @@ import ChangePassword from './ChangePassword'
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
-  signInWithPassword: vi.fn(),
   updateUser: vi.fn(),
 }))
 
@@ -13,7 +12,6 @@ vi.mock('../../lib/supabase', () => ({
   supabase: {
     auth: {
       getUser: mocks.getUser,
-      signInWithPassword: mocks.signInWithPassword,
       updateUser: mocks.updateUser,
     },
   },
@@ -35,10 +33,6 @@ describe('ChangePassword', () => {
     vi.clearAllMocks()
     mocks.getUser.mockResolvedValue({
       data: { user: { id: 'registered-user', email: 'user@example.com' } },
-      error: null,
-    })
-    mocks.signInWithPassword.mockResolvedValue({
-      data: { user: { id: 'registered-user' } },
       error: null,
     })
     mocks.updateUser.mockResolvedValue({
@@ -111,11 +105,8 @@ describe('ChangePassword', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Your password has been changed.',
     )
-    expect(mocks.signInWithPassword).toHaveBeenCalledWith({
-      email: 'user@example.com',
-      password: 'current-password',
-    })
     expect(mocks.updateUser).toHaveBeenCalledWith({
+      current_password: 'current-password',
       password: 'new-secure-password',
     })
     expect(screen.getByLabelText('Current password')).toHaveValue('')
@@ -151,9 +142,9 @@ describe('ChangePassword', () => {
   })
 
   it('does not update the password when the current password is incorrect', async () => {
-    mocks.signInWithPassword.mockResolvedValue({
+    mocks.updateUser.mockResolvedValue({
       data: { user: null },
-      error: { message: 'Invalid login credentials' },
+      error: { message: 'Current password is incorrect' },
     })
 
     renderPage()
@@ -172,6 +163,9 @@ describe('ChangePassword', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Your current password is incorrect.',
     )
-    expect(mocks.updateUser).not.toHaveBeenCalled()
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      current_password: 'wrong-current-password',
+      password: 'new-secure-password',
+    })
   })
 })

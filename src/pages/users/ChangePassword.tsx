@@ -10,9 +10,6 @@ export default function ChangePassword() {
   const [checkingAccount, setCheckingAccount] = useState(true)
   const [authorized, setAuthorized] = useState(false)
   const [accessError, setAccessError] = useState('')
-  const [account, setAccount] = useState<{ id: string; email: string } | null>(
-    null,
-  )
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -39,12 +36,7 @@ export default function ChangePassword() {
           )
         } else if (!user) {
           return
-        } else if (!user.email) {
-          setAccessError(
-            'This account does not have an email address to verify its current password.',
-          )
         } else {
-          setAccount({ id: user.id, email: user.email })
           setAuthorized(true)
         }
       } catch {
@@ -95,42 +87,20 @@ export default function ChangePassword() {
       return
     }
 
-    if (!account) {
-      setError('We could not verify your account. Please sign in again.')
-      return
-    }
-
     setSaving(true)
 
     try {
-      const {
-        data: { user: verifiedUser },
-        error: verificationError,
-      } = await supabase.auth.signInWithPassword({
-        email: account.email,
-        password: currentPassword,
-      })
-
-      if (verificationError) {
-        const detail = verificationError.message.toLowerCase()
-        setError(
-          /failed to fetch|network|internet/.test(detail)
-            ? 'Could not verify your current password. Check your connection and try again.'
-            : 'Your current password is incorrect. Please try again.',
-        )
-        return
-      }
-
-      if (!verifiedUser || verifiedUser.id !== account.id) {
-        setError('We could not verify this account. Please sign in again.')
-        return
-      }
-
       const { data, error: updateError } = await supabase.auth.updateUser({
+        current_password: currentPassword,
         password: newPassword,
       })
 
       if (updateError) {
+        const detail = updateError.message.toLowerCase()
+        if (/current.?password|password.{0,20}(incorrect|invalid)/.test(detail)) {
+          setError('Your current password is incorrect. Please try again.')
+          return
+        }
         setError(`Could not update your password. ${updateError.message}`)
         return
       }
