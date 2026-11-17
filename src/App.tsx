@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import Layout from './components/Layout'
 import { useNavRole } from './components/useNavRole'
+import { AccessibilityPreferencesProvider } from './components/AccessibilityPreferences'
 import Home from './pages/Home'
 import NotFound from './pages/NotFound'
 import Login from './pages/auth/Login'
@@ -71,66 +72,68 @@ function DriverDashboardRoute({ children }: { children?: ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <Routes>
-        <Route element={<Layout />}>
-          {/* Home and authentication */}
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
+    <AccessibilityPreferencesProvider>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <Routes>
+          <Route element={<Layout />}>
+            {/* Home and authentication */}
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            <Route path="register" element={<Register />} />
 
-          {/* User account */}
-          <Route path="account" element={<UserAccounts />} />
-          <Route path="account/address-logbook" element={<AddressLogbook />} />
+            {/* User account */}
+            <Route path="account" element={<UserAccounts />} />
+            <Route path="account/address-logbook" element={<AddressLogbook />} />
 
-          <Route path="settings" element={<Settings />} />
-          <Route path="accessibility" element={<Accessibility />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="accessibility" element={<Accessibility />} />
 
-          {/* Customer routes */}
-          <Route path="customerHome" element={<CustomerHome />} />
-          <Route path="catalog" element={<Catalog />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
+            {/* Customer routes */}
+            <Route path="customerHome" element={<CustomerHome />} />
+            <Route path="catalog" element={<Catalog />} />
+            <Route path="cart" element={<Cart />} />
+            <Route path="checkout" element={<Checkout />} />
 
-          {/* Employee routes */}
-          <Route path="employee" element={<EmployeeDashboardRoute />} />
-          <Route path="employee/orders" element={<Orders />} />
-          <Route path="driver" element={<DriverDashboardRoute />} />
-          <Route
-            path="driver/profile"
-            element={
-              <DriverDashboardRoute>
-                <DriverProfile />
-              </DriverDashboardRoute>
-            }
-          />
+            {/* Employee routes */}
+            <Route path="employee" element={<EmployeeDashboardRoute />} />
+            <Route path="employee/orders" element={<Orders />} />
+            <Route path="driver" element={<DriverDashboardRoute />} />
+            <Route
+              path="driver/profile"
+              element={
+                <DriverDashboardRoute>
+                  <DriverProfile />
+                </DriverDashboardRoute>
+              }
+            />
 
-          {/* Admin routes */}
-          <Route path="admin" element={<Admin />} />
-          <Route path="admin/orders" element={<AdminOrders />} />
-          <Route path="admin/products" element={<Products />} />
-          <Route path="admin/employees" element={<Employee />} />
-          <Route path="admin/employees/add" element={<AddEmployee />} />
-          <Route path="admin/employees/edit" element={<EditEmployee />} />
+            {/* Admin routes */}
+            <Route path="admin" element={<Admin />} />
+            <Route path="admin/orders" element={<AdminOrders />} />
+            <Route path="admin/products" element={<Products />} />
+            <Route path="admin/employees" element={<Employee />} />
+            <Route path="admin/employees/add" element={<AddEmployee />} />
+            <Route path="admin/employees/edit" element={<EditEmployee />} />
 
-          {/* Redirect older paths */}
-          <Route
-            path="products"
-            element={<Navigate to="/catalog" replace />}
-          />
-          <Route
-            path="customer"
-            element={<Navigate to="/customerHome" replace />}
-          />
-          <Route
-            path="rider"
-            element={<Navigate to="/employee" replace />}
-          />
+            {/* Redirect older paths */}
+            <Route
+              path="products"
+              element={<Navigate to="/catalog" replace />}
+            />
+            <Route
+              path="customer"
+              element={<Navigate to="/customerHome" replace />}
+            />
+            <Route
+              path="rider"
+              element={<Navigate to="/employee" replace />}
+            />
 
-          {/* Page not found */}
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            {/* Page not found */}
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AccessibilityPreferencesProvider>
   )
 }

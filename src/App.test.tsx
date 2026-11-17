@@ -193,6 +193,44 @@ describe('App routes (signed-out guest)', () => {
     ).toBeInTheDocument()
   })
 
+  it('applies and saves accessibility choices across the app', async () => {
+    renderAt('/accessibility')
+
+    fireEvent.click(screen.getByRole('radio', { name: /Light/ }))
+    fireEvent.click(screen.getByRole('radio', { name: /Extra large/ }))
+
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    expect(document.documentElement).toHaveAttribute(
+      'data-text-size',
+      'extra-large',
+    )
+    expect(localStorage.getItem('accessibility-theme')).toBe('light')
+    expect(localStorage.getItem('accessibility-text-size')).toBe('extra-large')
+
+    fireEvent.click(within(mainNav()).getByRole('link', { name: 'Home' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Water Delivery System' }),
+    ).toBeInTheDocument()
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    expect(document.documentElement).toHaveAttribute(
+      'data-text-size',
+      'extra-large',
+    )
+  })
+
+  it('restores accessibility choices saved on this device', () => {
+    localStorage.setItem('accessibility-theme', 'light')
+    localStorage.setItem('accessibility-text-size', 'large')
+
+    renderAt('/accessibility')
+
+    expect(screen.getByRole('radio', { name: /Light/ })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /^Large/ })).toBeChecked()
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    expect(document.documentElement).toHaveAttribute('data-text-size', 'large')
+  })
+
   it('does not expose Address Logbook to guests who open its URL directly', async () => {
     renderAt('/account/address-logbook')
     expect(
