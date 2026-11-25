@@ -28,6 +28,7 @@ import Orders from './pages/employees/Orders'
 
 // Customer imports
 import CustomerHome from './pages/customer/CustomerHome'
+import OrderTracking from './pages/customer/OrderTracking'
 import Catalog from './pages/customer/Catalog'
 import Cart from './pages/customer/Cart'
 import Checkout from './pages/customer/Checkout'
@@ -95,6 +96,8 @@ export default function App() {
             <Route path="catalog" element={<Catalog />} />
             <Route path="cart" element={<Cart />} />
             <Route path="checkout" element={<Checkout />} />
+            <Route path="orders" element={<OrderTracking key="list" />} />
+            <Route path="orders/:orderId/track" element={<OrderTracking key="detail" />} />
 
             {/* Employee routes */}
             <Route path="employee" element={<EmployeeDashboardRoute />} />

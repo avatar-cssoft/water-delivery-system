@@ -64,3 +64,15 @@ src/
 supabase/
   migrations/     SQL migrations
 ```
+
+### Delivery maps and tracking
+
+Apply `supabase/migrations/20261125220000_delivery_tracking.sql` to the Supabase project
+after the existing application tables, including `addresses`, are installed. The migration
+adds the drop-off fields and the authenticated delivery tracking functions. Validate the
+project's existing order, address, and delivery row-level security policies in staging.
+
+The map uses Leaflet and OpenStreetMap tiles by default. Set
+`VITE_MAP_TILE_URL` and `VITE_MAP_TILE_ATTRIBUTION` to use another tile provider.
+Riders share location from the open driver dashboard. Device location requires HTTPS
+or localhost and permission from the rider. Customers can follow the status in My orders.

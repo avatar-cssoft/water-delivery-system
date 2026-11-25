@@ -108,7 +108,7 @@ describe('Driver deliveries', () => {
       table: 'orders',
       method: 'select',
       args: [
-        'id, order_reference, user_id, order_date, status, total_amount, delivery_address',
+        'id, order_reference, user_id, order_date, status, total_amount, delivery_address, delivery_latitude, delivery_longitude, delivery_instructions',
       ],
     })
     expect(queryCalls).toContainEqual({

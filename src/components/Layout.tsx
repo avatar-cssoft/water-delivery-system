@@ -59,6 +59,7 @@ export default function Layout() {
             </NavLink>
             <NavLink to="/catalog">Products</NavLink>
             {showCart && <NavLink to="/cart">Cart</NavLink>}
+            {role === 'customer' && <NavLink to="/orders">My orders</NavLink>}
             {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
             {signedIn && <NavLink to="/account">My Account</NavLink>}
             <NavLink to="/settings">Settings</NavLink>
