@@ -12,6 +12,7 @@ export default function Checkout() {
   >()
   const setCheckoutComplete = outletContext?.setCheckoutComplete
   const [address, setAddress] = useState('')
+  const [addressLoading, setAddressLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [pendingOrderReference, setPendingOrderReference] = useState<string | null>(null)
@@ -66,34 +67,53 @@ export default function Checkout() {
     return () => window.clearTimeout(resetCopyState)
   }, [copyState])
 
-  // Start with the address saved on the customer's profile. They can still
-  // change it for this order; the profile itself isn't updated.
+  // Checkout uses the address saved on the customer's profile.
   useEffect(() => {
     let cancelled = false
 
     const loadSavedAddress = async () => {
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser()
 
-      if (!user) return
+      if (userError) throw userError
+      if (!user) {
+        throw new Error('Sign in to load your saved delivery address.')
+      }
 
-      const { data } = await supabase
+      const { data, error: profileError } = await supabase
         .from('profiles')
         .select('address')
         .eq('id', user.id)
         .single()
 
+      if (profileError) throw profileError
+
       const saved = (data as { address: string | null } | null)?.address
 
-      // Don't replace anything the customer typed while this was loading.
-      if (!cancelled && saved) {
-        setAddress((current) => current || saved)
+      if (!saved?.trim()) {
+        throw new Error(
+          'No saved delivery address was found. Add one to your account before placing an order.',
+        )
       }
+
+      if (!cancelled) setAddress(saved)
     }
 
-    // Pre-filling is only a convenience, so a failure leaves the box empty.
-    loadSavedAddress().catch(() => {})
+    loadSavedAddress().catch((err: unknown) => {
+      console.error('Could not load saved delivery address:', err)
+
+      if (!cancelled) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Could not load your saved delivery address.',
+        )
+      }
+    }).finally(() => {
+      if (!cancelled) setAddressLoading(false)
+    })
 
     return () => {
       cancelled = true
@@ -307,11 +327,16 @@ export default function Checkout() {
           <textarea
             id="delivery-address"
             value={address}
-            onChange={(event) => setAddress(event.target.value)}
-            placeholder="Enter your complete delivery address"
+            readOnly
+            aria-readonly="true"
+            placeholder="Loading saved delivery address..."
             required
             rows={3}
           />
+          <small>
+            This address comes from your profile. Update it there before
+            ordering if it needs to change.
+          </small>
 
           <fieldset>
             <legend>Requested delivery window</legend>
@@ -326,9 +351,13 @@ export default function Checkout() {
           <button
             type="button"
             onClick={placeOrder}
-            disabled={loading || cart.length === 0}
+            disabled={loading || addressLoading || !address.trim() || cart.length === 0}
           >
-            {loading ? 'Placing Order...' : 'Place Order'}
+            {loading
+              ? 'Placing Order...'
+              : addressLoading
+                ? 'Loading Address...'
+                : 'Place Order'}
           </button>
         </>
       )}

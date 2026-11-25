@@ -100,6 +100,7 @@ describe('Checkout delivery address', () => {
   it('starts with the address saved on the profile', async () => {
     renderCheckout()
     expect(await screen.findByDisplayValue(savedAddress)).toBe(addressBox())
+    expect(addressBox()).toHaveAttribute('readonly')
   })
 
   it('shows requested delivery window placeholders while scheduling is WIP', () => {
@@ -110,18 +111,19 @@ describe('Checkout delivery address', () => {
       .toBeInTheDocument()
   })
 
-  it("doesn't replace an address typed before the profile loads", async () => {
+  it('does not allow changing the address while the saved address loads', async () => {
     let resolveProfile: (value: unknown) => void = () => {}
     getProfile.mockReturnValue(new Promise((resolve) => (resolveProfile = resolve)))
 
     renderCheckout()
     fireEvent.change(addressBox(), { target: { value: 'Office, Magsaysay Ave' } })
+    expect(addressBox()).toHaveValue('')
     await vi.waitFor(() => expect(getProfile).toHaveBeenCalled())
     await act(async () => {
       resolveProfile({ data: { address: savedAddress }, error: null })
     })
 
-    expect(addressBox()).toHaveValue('Office, Magsaysay Ave')
+    expect(addressBox()).toHaveValue(savedAddress)
   })
 
   it('leaves the box empty when nobody is signed in', async () => {
@@ -129,6 +131,9 @@ describe('Checkout delivery address', () => {
     renderCheckout()
     await vi.waitFor(() => expect(getUser).toHaveBeenCalled())
     expect(addressBox()).toHaveValue('')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Sign in to load your saved delivery address.',
+    )
     expect(getProfile).not.toHaveBeenCalled()
   })
 
@@ -137,6 +142,9 @@ describe('Checkout delivery address', () => {
     renderCheckout()
     await vi.waitFor(() => expect(getProfile).toHaveBeenCalled())
     expect(addressBox()).toHaveValue('')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load your saved delivery address: network down',
+    )
   })
 })
 
