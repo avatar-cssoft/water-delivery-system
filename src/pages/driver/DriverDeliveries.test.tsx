@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DriverDeliveries from './DriverDeliveries'
 
@@ -83,8 +83,6 @@ describe('Driver deliveries', () => {
   it('shows only orders assigned to the signed-in delivery employee', async () => {
     render(<DriverDeliveries />)
 
-    expect(await screen.findByText('Barangay Central'))
-      .toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Order #ORD-21' }))
       .toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Order #21' }))
@@ -94,11 +92,31 @@ describe('Driver deliveries', () => {
         '1 Delivery Road, Barangay Central, Baguio City, Benguet',
       ),
     ).toBeInTheDocument()
+    expect(screen.queryByText('Order status')).not.toBeInTheDocument()
+    expect(screen.getByText('PENDING')).toHaveStyle({
+      minWidth: '140px',
+      height: '38px',
+      backgroundColor: '#fef3c7',
+      color: '#92400e',
+    })
+    expect(screen.getByText('WIP')).toBeInTheDocument()
+    expect(
+      screen.getByText(/requested delivery times will appear here/i),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText('Order date', { selector: 'dt' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '+63 912 345 6789' })).toHaveAttribute(
       'href',
       'tel:+63 912 345 6789',
     )
-    expect(screen.getByText(/Total:\s*₱120\.00/)).toBeInTheDocument()
+    expect(screen.getByText('Total: ₱120.00')).toHaveStyle({
+      minWidth: '140px',
+      height: '38px',
+      whiteSpace: 'nowrap',
+      backgroundColor: '#dcefe1',
+      color: '#25352a',
+    })
     expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument()
     expect(queryCalls).toContainEqual({
       table: 'deliveries',
@@ -121,6 +139,46 @@ describe('Driver deliveries', () => {
       table: 'profiles',
       method: 'in',
       args: ['id', ['customer-1']],
+    })
+  })
+
+  it.each([
+    {
+      status: 'preparing',
+      label: 'PREPARING',
+      backgroundColor: '#ffedd5',
+      color: '#9a3412',
+    },
+    {
+      status: 'out_for_delivery',
+      label: 'OUT FOR DELIVERY',
+      backgroundColor: '#dbeafe',
+      color: '#1e40af',
+    },
+    {
+      status: 'delivered',
+      label: 'DELIVERED',
+      backgroundColor: '#dcfce7',
+      color: '#166534',
+    },
+    {
+      status: 'cancelled',
+      label: 'CANCELLED',
+      backgroundColor: '#fee2e2',
+      color: '#991b1b',
+    },
+  ])('shows the $label order status in its assigned color', async ({
+    status,
+    label,
+    backgroundColor,
+    color,
+  }) => {
+    orderRows[0].status = status
+    render(<DriverDeliveries />)
+
+    expect(await screen.findByText(label)).toHaveStyle({
+      backgroundColor,
+      color,
     })
   })
 
@@ -166,8 +224,39 @@ describe('Driver deliveries', () => {
     expect(
       screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
     ).toEqual(['Order #ORD-21', 'Order #ORD-22', 'Order #ORD-23'])
-    expect(screen.getByText('Barangay Camp 7')).toBeInTheDocument()
-    expect(screen.getAllByText('Barangay Central')).toHaveLength(2)
+    expect(
+      screen.getByText(
+        '1 Delivery Road, Barangay Camp 7, Baguio City, Benguet',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByText(
+        /Water Street, Barangay Central, Baguio City, Benguet/,
+      ),
+    ).toHaveLength(1)
+    expect(
+      screen.getByText(
+        '3 Hill Road, Barangay Central, Baguio City, Benguet',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the full address without a separate barangay field', async () => {
+    orderRows[0].delivery_address = 'NULL, NULL, NULL, NULL, 0000'
+
+    render(<DriverDeliveries />)
+
+    const orderHeading = await screen.findByRole('heading', {
+      name: 'Order #ORD-21',
+    })
+    const orderCard = orderHeading.closest('article')
+
+    if (!orderCard) throw new Error('Order card was not rendered.')
+
+    expect(within(orderCard).getByText('NULL, NULL, NULL, NULL, 0000'))
+      .toBeInTheDocument()
+    expect(within(orderCard).queryByText('Barangay', { selector: 'dt' }))
+      .not.toBeInTheDocument()
   })
 
   it('shows the empty state when no deliveries are assigned', async () => {

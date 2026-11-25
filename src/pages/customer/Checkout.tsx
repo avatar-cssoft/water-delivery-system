@@ -313,6 +313,14 @@ export default function Checkout() {
             rows={3}
           />
 
+          <fieldset>
+            <legend>Requested delivery window</legend>
+            <p>
+              <strong>WIP</strong> — delivery scheduling will be available
+              soon.
+            </p>
+          </fieldset>
+
           {error && <p role="alert">{error}</p>}
 
           <button

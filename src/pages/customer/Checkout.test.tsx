@@ -102,6 +102,14 @@ describe('Checkout delivery address', () => {
     expect(await screen.findByDisplayValue(savedAddress)).toBe(addressBox())
   })
 
+  it('shows requested delivery window placeholders while scheduling is WIP', () => {
+    renderCheckout()
+
+    expect(screen.getByText('WIP')).toBeInTheDocument()
+    expect(screen.getByText(/delivery scheduling will be available soon/i))
+      .toBeInTheDocument()
+  })
+
   it("doesn't replace an address typed before the profile loads", async () => {
     let resolveProfile: (value: unknown) => void = () => {}
     getProfile.mockReturnValue(new Promise((resolve) => (resolveProfile = resolve)))
