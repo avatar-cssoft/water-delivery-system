@@ -108,6 +108,8 @@ describe('Checkout delivery address', () => {
     expect(addressBox()).toHaveAttribute('readonly')
     expect(screen.getAllByRole('heading', { name: 'Delivery Address' }))
       .toHaveLength(1)
+    expect(screen.queryByText(/This address is read-only/))
+      .not.toBeInTheDocument()
     fireEvent.change(addressBox(), { target: { value: 'A different address' } })
     expect(addressBox()).toHaveValue(savedAddress)
   })

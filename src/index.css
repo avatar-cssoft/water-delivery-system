@@ -691,7 +691,7 @@ body {
 }
 
 .main input.checkout-delivery-address {
-  width: auto;
+  width: 100%;
   max-width: 100%;
 }
 

@@ -538,17 +538,12 @@ export default function Checkout() {
             id="delivery-address"
             type="text"
             value={address}
-            size={Math.max(24, address.length)}
             readOnly
             aria-readonly="true"
             aria-label="Delivery Address"
             placeholder="Loading saved delivery address..."
             required
           />
-          <small>
-            This address is read-only. Choose another saved address or update
-            your address book if it needs to change.
-          </small>
 
           <label htmlFor="checkout-delivery-instructions">
             Delivery instructions (optional)
