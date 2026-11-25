@@ -94,7 +94,7 @@ export default function Checkout() {
         }
 
         if (!user) {
-          setError('Sign in to load your saved delivery address.')
+          navigate('/login')
           return
         }
 
@@ -184,7 +184,7 @@ export default function Checkout() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [navigate])
 
   function handleAddressSelection(id: string) {
     const selectedAddress = addresses.find(item => item.id === id)

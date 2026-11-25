@@ -74,6 +74,7 @@ function renderCheckout() {
     <MemoryRouter initialEntries={['/checkout']}>
       <Routes>
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/login" element={<p>Login page</p>} />
         <Route path="/catalog" element={<p>Catalog page</p>} />
         <Route path="/customerHome" element={<CustomerHome />} />
       </Routes>
@@ -182,14 +183,11 @@ describe('Checkout delivery address', () => {
     expect(addressBox()).toHaveValue(savedAddress)
   })
 
-  it('leaves the box empty when nobody is signed in', async () => {
+  it('redirects to login when nobody is signed in', async () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null })
     renderCheckout()
-    await vi.waitFor(() => expect(getUser).toHaveBeenCalled())
-    expect(addressBox()).toHaveValue('')
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Sign in to load your saved delivery address.',
-    )
+    expect(await screen.findByText('Login page')).toBeInTheDocument()
+    expect(getAddresses).not.toHaveBeenCalled()
     expect(getProfile).not.toHaveBeenCalled()
   })
 
