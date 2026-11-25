@@ -8,12 +8,14 @@ import CustomerHome from './CustomerHome'
 
 const {
   getUser,
+  getAddresses,
   getProfile,
   getOrder,
   insertOrder,
   insertItems,
 } = vi.hoisted(() => ({
   getUser: vi.fn(),
+  getAddresses: vi.fn(),
   getProfile: vi.fn(),
   getOrder: vi.fn(),
   insertOrder: vi.fn(),
@@ -26,7 +28,7 @@ vi.mock('../../lib/supabase', () => {
       from: (table: string) => {
         const query = {
           select: () => query,
-          eq: () => query,
+          eq: () => table === 'addresses' ? getAddresses() : query,
           insert: (values: unknown) => {
             if (table === 'orders') {
               insertOrder(values)
@@ -72,6 +74,7 @@ function renderCheckout() {
     <MemoryRouter initialEntries={['/checkout']}>
       <Routes>
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/login" element={<p>Login page</p>} />
         <Route path="/catalog" element={<p>Catalog page</p>} />
         <Route path="/customerHome" element={<CustomerHome />} />
       </Routes>
@@ -84,6 +87,7 @@ beforeEach(() => {
   saveCart([{ product, quantity: 2 }])
   getUser.mockReset()
   getUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+  getAddresses.mockReset().mockResolvedValue({ data: [], error: null })
   getProfile.mockReset()
   getProfile.mockResolvedValue({ data: { address: savedAddress }, error: null })
   getOrder.mockReset()
@@ -100,27 +104,95 @@ describe('Checkout delivery address', () => {
   it('starts with the address saved on the profile', async () => {
     renderCheckout()
     expect(await screen.findByDisplayValue(savedAddress)).toBe(addressBox())
+    expect(addressBox().tagName).toBe('INPUT')
+    expect(addressBox()).toHaveAttribute('readonly')
+    expect(screen.getAllByRole('heading', { name: 'Delivery Address' }))
+      .toHaveLength(1)
+    expect(screen.queryByText(/This address is read-only/))
+      .not.toBeInTheDocument()
+    fireEvent.change(addressBox(), { target: { value: 'A different address' } })
+    expect(addressBox()).toHaveValue(savedAddress)
   })
 
-  it("doesn't replace an address typed before the profile loads", async () => {
+  it('lets customers choose a saved address without making the address editable', async () => {
+    getAddresses.mockResolvedValue({
+      data: [
+        {
+          id: 'home',
+          user_id: 'u1',
+          recipient_name: 'Customer',
+          phone: '09123456789',
+          label: 'Home',
+          address_line: '12 Session Road',
+          barangay: 'Burnham',
+          city: 'Baguio City',
+          province: 'Benguet',
+          postal_code: '2600',
+          is_default: true,
+          created_at: '2026-11-25T00:00:00Z',
+        },
+        {
+          id: 'office',
+          user_id: 'u1',
+          recipient_name: 'Customer',
+          phone: '09123456789',
+          label: 'Office',
+          address_line: '1 Office Road',
+          barangay: 'Session',
+          city: 'Baguio City',
+          province: 'Benguet',
+          postal_code: '2600',
+          is_default: false,
+          created_at: '2026-11-24T00:00:00Z',
+        },
+      ],
+      error: null,
+    })
+
+    renderCheckout()
+
+    const addressSelector = await screen.findByLabelText('Choose a saved address')
+    expect(addressBox()).toHaveValue(
+      '12 Session Road, Burnham, Baguio City, Benguet, 2600',
+    )
+    expect(addressBox()).toHaveAttribute('readonly')
+
+    fireEvent.change(addressSelector, { target: { value: 'office' } })
+
+    expect(addressBox()).toHaveValue(
+      '1 Office Road, Session, Baguio City, Benguet, 2600',
+    )
+    expect(addressBox()).toHaveAttribute('readonly')
+  })
+
+  it('shows requested delivery window placeholders while scheduling is WIP', () => {
+    renderCheckout()
+
+    expect(screen.getByText('WIP')).toBeInTheDocument()
+    expect(screen.getByText(/delivery scheduling will be available soon/i))
+      .toBeInTheDocument()
+  })
+
+  it('does not allow changing the address while the saved address loads', async () => {
     let resolveProfile: (value: unknown) => void = () => {}
     getProfile.mockReturnValue(new Promise((resolve) => (resolveProfile = resolve)))
 
     renderCheckout()
     fireEvent.change(addressBox(), { target: { value: 'Office, Magsaysay Ave' } })
+    expect(addressBox()).toHaveValue('')
     await vi.waitFor(() => expect(getProfile).toHaveBeenCalled())
     await act(async () => {
       resolveProfile({ data: { address: savedAddress }, error: null })
     })
 
-    expect(addressBox()).toHaveValue('Office, Magsaysay Ave')
+    expect(addressBox()).toHaveValue(savedAddress)
   })
 
-  it('leaves the box empty when nobody is signed in', async () => {
+  it('redirects to login when nobody is signed in', async () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null })
     renderCheckout()
-    await vi.waitFor(() => expect(getUser).toHaveBeenCalled())
-    expect(addressBox()).toHaveValue('')
+    expect(await screen.findByText('Login page')).toBeInTheDocument()
+    expect(getAddresses).not.toHaveBeenCalled()
     expect(getProfile).not.toHaveBeenCalled()
   })
 
@@ -129,6 +201,9 @@ describe('Checkout delivery address', () => {
     renderCheckout()
     await vi.waitFor(() => expect(getProfile).toHaveBeenCalled())
     expect(addressBox()).toHaveValue('')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load your saved delivery address: network down',
+    )
   })
 })
 

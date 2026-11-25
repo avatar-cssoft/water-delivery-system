@@ -28,7 +28,8 @@ const order = {
   order_date: '2026-10-26T10:00:00Z',
   status: 'pending',
   total_amount: 60,
-  delivery_address: '12 Session Road, Baguio City',
+  delivery_address:
+    '12 Session Road, Burnham, Baguio City, Benguet, 2600, Philippines',
   created_at: '2026-10-26T10:00:00Z',
 }
 
@@ -51,7 +52,22 @@ describe('Orders access', () => {
   it.each(['employee', 'rider', 'admin'])('shows the orders to a signed-in %s', async (role) => {
     getCurrentUserRole.mockResolvedValue(role)
     render(<Orders />)
-    expect(await screen.findByText('12 Session Road, Baguio City')).toBeInTheDocument()
+    expect(await screen.findByRole('cell', { name: '12 Session Road' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Burnham' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Baguio City' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: 'Benguet' })).toBeInTheDocument()
+    expect(screen.getByRole('cell', { name: '2600, Philippines' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Address Line' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Barangay' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'City' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Province' }))
+      .toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Others' }))
+      .toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Order Reference #' }))
       .toBeInTheDocument()
     expect(screen.getByRole('cell', { name: 'ORD-7' })).toBeInTheDocument()

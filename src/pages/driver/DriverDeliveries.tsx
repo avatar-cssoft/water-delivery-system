@@ -24,6 +24,8 @@ type Order = {
   status: string
   total_amount: number
   delivery_address: string
+  requested_delivery_window_start?: string | null
+  requested_delivery_window_end?: string | null
   customer_phone?: string
 }
 
@@ -40,14 +42,75 @@ type AssignedOrder = {
 type PageState = 'loading' | 'ready' | 'login' | 'error'
 
 function formatStatus(status: string) {
-  return status.replaceAll('_', ' ')
+  return status.replaceAll('_', ' ').toUpperCase()
 }
 
-function formatDate(value: string | null) {
-  if (!value) return 'Not available'
+function getOrderStatusColors(status: string | undefined) {
+  switch (status?.toLowerCase()) {
+    case 'pending':
+      return { backgroundColor: '#fef3c7', color: '#92400e' }
+    case 'preparing':
+      return { backgroundColor: '#ffedd5', color: '#9a3412' }
+    case 'out_for_delivery':
+      return { backgroundColor: '#dbeafe', color: '#1e40af' }
+    case 'delivered':
+      return { backgroundColor: '#dcfce7', color: '#166534' }
+    case 'cancelled':
+      return { backgroundColor: '#fee2e2', color: '#991b1b' }
+    default:
+      return { backgroundColor: 'var(--bg)', color: 'var(--muted)' }
+  }
+}
+
+function formatRequestedWindow(value: string | null | undefined) {
+  if (!value) return null
 
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString()
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
+
+function getTimestamp(value: string | null | undefined) {
+  if (!value) return Number.POSITIVE_INFINITY
+
+  const timestamp = Date.parse(value)
+  return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp
+}
+
+function getBarangay(deliveryAddress: string | undefined) {
+  return deliveryAddress?.split(',')[1]?.trim() || 'Barangay not specified'
+}
+
+function compareAssignedOrders(first: AssignedOrder, second: AssignedOrder) {
+  const barangayOrder = getBarangay(first.order?.delivery_address).localeCompare(
+    getBarangay(second.order?.delivery_address),
+    undefined,
+    { sensitivity: 'base' },
+  )
+
+  if (barangayOrder !== 0) return barangayOrder
+
+  const firstWindowStart = getTimestamp(
+    first.order?.requested_delivery_window_start,
+  )
+  const secondWindowStart = getTimestamp(
+    second.order?.requested_delivery_window_start,
+  )
+
+  if (firstWindowStart !== secondWindowStart) {
+    return firstWindowStart - secondWindowStart
+  }
+
+  const firstOrderDate = getTimestamp(first.order?.order_date)
+  const secondOrderDate = getTimestamp(second.order?.order_date)
+
+  if (firstOrderDate !== secondOrderDate) {
+    return firstOrderDate - secondOrderDate
+  }
+
+  return (
+    getTimestamp(first.delivery.created_at) -
+    getTimestamp(second.delivery.created_at)
+  )
 }
 
 export default function DriverDeliveries() {
@@ -86,9 +149,7 @@ export default function DriverDeliveries() {
         if (deliveries.length > 0) {
           const { data: orderData, error: ordersError } = await supabase
             .from('orders')
-            .select(
-              'id, order_reference, user_id, order_date, status, total_amount, delivery_address, delivery_latitude, delivery_longitude, delivery_instructions',
-            )
+            .select('*')
             .in(
               'id',
               deliveries.map((delivery) => delivery.order_id),
@@ -156,6 +217,7 @@ export default function DriverDeliveries() {
   const completedCount = assignedOrders.filter(({ delivery }) =>
     ['completed', 'delivered'].includes(delivery.status.toLowerCase()),
   ).length
+  const sortedAssignedOrders = [...assignedOrders].sort(compareAssignedOrders)
 
   return (
     <>
@@ -182,7 +244,8 @@ export default function DriverDeliveries() {
           My Deliveries
         </h2>
         <p style={styles.sectionSubtitle}>
-          Orders assigned to your delivery account.
+          Orders are sorted by barangay, then requested delivery window. Until
+          window times are available, orders within each barangay use order time.
         </p>
 
         {pageState === 'loading' && (
@@ -210,7 +273,7 @@ export default function DriverDeliveries() {
         )}
         {pageState === 'ready' && assignedOrders.length > 0 && (
           <div style={styles.orderList}>
-            {assignedOrders.map(({ delivery, order }) => (
+            {sortedAssignedOrders.map(({ delivery, order }) => (
               <article key={delivery.id} style={styles.orderCard}>
                 <div style={styles.orderHeader}>
                   <h3 style={styles.orderTitle}>
@@ -218,20 +281,42 @@ export default function DriverDeliveries() {
                       ? `Order #${order.order_reference}`
                       : 'Order reference unavailable'}
                   </h3>
-                  <span style={styles.deliveryStatus}>
-                    {formatStatus(delivery.status)}
-                  </span>
+                  <div style={styles.orderHeaderMeta}>
+                    <div style={styles.headerDetail}>
+                      <strong
+                        style={{
+                          ...styles.headerBadge,
+                          ...styles.orderTotal,
+                        }}
+                      >
+                        Total: {order
+                          ? `₱${Number(order.total_amount).toFixed(2)}`
+                          : 'Unavailable'}
+                      </strong>
+                    </div>
+                    <div style={styles.statusGroup}>
+                      <span
+                        style={{
+                          ...styles.headerBadge,
+                          ...styles.orderStatus,
+                          ...getOrderStatusColors(order?.status),
+                        }}
+                      >
+                        {order ? formatStatus(order.status) : 'Unavailable'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <dl style={styles.orderDetails}>
                   <div>
                     <dt>Delivery address</dt>
-                    <dd>
+                    <dd style={styles.orderDetailValue}>
                       {order?.delivery_address ?? 'Order details unavailable'}
                     </dd>
                   </div>
                   <div>
                     <dt>Customer phone</dt>
-                    <dd>
+                    <dd style={styles.orderDetailValue}>
                       {order?.customer_phone ? (
                         <a href={`tel:${order.customer_phone}`}>
                           {order.customer_phone}
@@ -241,20 +326,34 @@ export default function DriverDeliveries() {
                       )}
                     </dd>
                   </div>
-                  <div>
-                    <dt>Order status</dt>
-                    <dd>{order ? formatStatus(order.status) : 'Unavailable'}</dd>
-                  </div>
-                  <div>
-                    <dt>Order date</dt>
-                    <dd>{formatDate(order?.order_date ?? null)}</dd>
-                  </div>
-                  <div>
-                    <dt>Total</dt>
-                    <dd>
-                      {order
-                        ? `₱${Number(order.total_amount).toFixed(2)}`
-                        : 'Unavailable'}
+                  <div style={styles.requestedWindowItem}>
+                    <dt>Requested Delivery Window</dt>
+                    <dd style={styles.requestedWindow}>
+                      {order?.requested_delivery_window_start ||
+                      order?.requested_delivery_window_end ? (
+                        <div style={styles.windowTimes}>
+                          <div>
+                            <span style={styles.windowLabel}>From</span>
+                            {formatRequestedWindow(
+                              order.requested_delivery_window_start,
+                            ) ?? 'Not set'}
+                          </div>
+                          <div>
+                            <span style={styles.windowLabel}>To</span>
+                            {formatRequestedWindow(
+                              order.requested_delivery_window_end,
+                            ) ?? 'Not set'}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={styles.windowWip}>
+                          <span style={styles.wipBadge}>WIP</span>
+                          <span>
+                            Requested delivery times will appear here when
+                            scheduling is available.
+                          </span>
+                        </div>
+                      )}
                     </dd>
                   </div>
                 </dl>
@@ -368,27 +467,103 @@ const styles: Record<string, React.CSSProperties> = {
   },
   orderHeader: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: '12px',
+  },
+  orderHeaderMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: '24px',
+  },
+  headerDetail: {
+    display: 'grid',
+    gap: '4px',
+  },
+  headerDetailLabel: {
+    color: 'var(--muted)',
+    fontSize: '12px',
+  },
+  headerBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxSizing: 'border-box',
+    minWidth: '140px',
+    height: '38px',
+    padding: '0 12px',
+    borderRadius: '999px',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+  },
+  orderTotal: {
+    border: '1px solid #bfd8c5',
+    backgroundColor: '#dcefe1',
+    color: '#25352a',
+    fontSize: '15px',
+    fontWeight: 700,
+  },
+  statusGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
   },
   orderTitle: {
     color: 'var(--text)',
     margin: 0,
   },
-  deliveryStatus: {
-    borderRadius: '999px',
-    padding: '4px 12px',
-    backgroundColor: 'var(--bg)',
-    color: 'var(--accent)',
-    textTransform: 'capitalize',
+  orderStatus: {
     fontSize: '13px',
+    fontWeight: 700,
   },
   orderDetails: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '16px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+    alignItems: 'start',
+    gap: '20px 28px',
     margin: '20px 0 0',
+  },
+  requestedWindowItem: {
+    gridColumn: '1 / -1',
+  },
+  orderDetailValue: {
+    margin: '4px 0 0',
+    textAlign: 'left',
+    overflowWrap: 'anywhere',
+  },
+  requestedWindow: {
+    margin: '4px 0 0',
+    overflowWrap: 'anywhere',
+  },
+  windowTimes: {
+    display: 'grid',
+    gap: '8px',
+    color: 'var(--text)',
+  },
+  windowLabel: {
+    display: 'inline-block',
+    minWidth: '42px',
+    color: 'var(--muted)',
+    fontSize: '13px',
+    marginRight: '8px',
+  },
+  windowWip: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '10px',
+    color: 'var(--muted)',
+    lineHeight: 1.5,
+  },
+  wipBadge: {
+    flexShrink: 0,
+    borderRadius: '999px',
+    padding: '3px 9px',
+    backgroundColor: 'var(--bg)',
+    color: 'var(--accent)',
+    fontSize: '12px',
+    fontWeight: 700,
   },
 }
