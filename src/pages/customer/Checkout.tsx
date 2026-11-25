@@ -497,91 +497,96 @@ export default function Checkout() {
 
           <h3>Total: {formatPrice(total)}</h3>
 
-          <div className="checkout-delivery-header">
-            <h2>Delivery Address</h2>
-            <button
-              className="checkout-manage-addresses"
-              type="button"
-              onClick={() => navigate('/account/address-logbook')}
-            >
-              Manage Saved Addresses
-            </button>
-          </div>
-
-          {addresses.length > 0 && (
-            <>
-              <label htmlFor="saved-address">Choose a saved address</label>
-              <select
-                id="saved-address"
-                value={selectedAddressId}
-                onChange={event => handleAddressSelection(event.target.value)}
-                disabled={addressLoading || loading}
+          <section className="checkout-delivery-section">
+            <div className="checkout-delivery-header">
+              <h2>Delivery Address</h2>
+              <button
+                className="checkout-manage-addresses"
+                type="button"
+                onClick={() => navigate('/account/address-logbook')}
               >
-                {addresses.map(savedAddress => (
-                  <option key={savedAddress.id} value={savedAddress.id}>
-                    {savedAddress.label || 'Other'}
-                    {savedAddress.is_default ? ' (Default)' : ''}
-                    {' - '}
-                    {formatAddress(savedAddress)}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
+                Manage Saved Addresses
+              </button>
+            </div>
 
-          {addressLoading && (
-            <p>Loading saved addresses...</p>
-          )}
+            {addresses.length > 0 && (
+              <div className="checkout-saved-address">
+                <label htmlFor="saved-address">Choose a saved address</label>
+                <select
+                  id="saved-address"
+                  value={selectedAddressId}
+                  onChange={event =>
+                    handleAddressSelection(event.target.value)
+                  }
+                  disabled={addressLoading || loading}
+                >
+                  {addresses.map(savedAddress => (
+                    <option key={savedAddress.id} value={savedAddress.id}>
+                      {savedAddress.label || 'Other'}
+                      {savedAddress.is_default ? ' (Default)' : ''}
+                      {' - '}
+                      {formatAddress(savedAddress)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <input
-            className="checkout-delivery-address"
-            id="delivery-address"
-            type="text"
-            value={address}
-            readOnly
-            aria-readonly="true"
-            aria-label="Delivery Address"
-            placeholder="Loading saved delivery address..."
-            required
-          />
+            {addressLoading && <p>Loading saved addresses...</p>}
 
-          <label htmlFor="checkout-delivery-instructions">
-            Delivery instructions (optional)
-          </label>
-          <input
-            id="checkout-delivery-instructions"
-            value={instructions}
-            maxLength={500}
-            onChange={event => setInstructions(event.target.value)}
-          />
+            <input
+              className="checkout-delivery-address"
+              id="delivery-address"
+              type="text"
+              value={address}
+              readOnly
+              aria-readonly="true"
+              aria-label="Delivery Address"
+              placeholder="Loading saved delivery address..."
+              required
+            />
 
-          <fieldset>
-            <legend>Requested delivery window</legend>
-            <p>
-              <strong>WIP</strong> — delivery scheduling will be available
-              soon.
-            </p>
-          </fieldset>
+            <div className="checkout-delivery-instructions">
+              <label htmlFor="checkout-delivery-instructions">
+                Delivery instructions (optional)
+              </label>
+              <input
+                id="checkout-delivery-instructions"
+                value={instructions}
+                maxLength={500}
+                onChange={event => setInstructions(event.target.value)}
+              />
+            </div>
 
-          <DropoffPicker key={address} point={point} onChange={setPoint} />
+            <fieldset>
+              <legend>Requested delivery window</legend>
+              <p>
+                <strong>WIP</strong> — delivery scheduling will be available
+                soon.
+              </p>
+            </fieldset>
 
-          {error && (
-            <p role="alert">
-              {error}
-            </p>
-          )}
+            <DropoffPicker key={address} point={point} onChange={setPoint} />
 
-          <button
-            type="button"
-            onClick={placeOrder}
-            disabled={loading || addressLoading || !address.trim() || cart.length === 0}
-          >
-            {loading
-              ? 'Placing Order...'
-              : addressLoading
-                ? 'Loading Address...'
-                : 'Place Order'}
-          </button>
+            {error && <p role="alert">{error}</p>}
+
+            <button
+              type="button"
+              onClick={placeOrder}
+              disabled={
+                loading ||
+                addressLoading ||
+                !address.trim() ||
+                cart.length === 0
+              }
+            >
+              {loading
+                ? 'Placing Order...'
+                : addressLoading
+                  ? 'Loading Address...'
+                  : 'Place Order'}
+            </button>
+          </section>
         </>
       )}
     </main>

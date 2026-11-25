@@ -686,6 +686,18 @@ body {
   gap: 12px;
 }
 
+.main .checkout-delivery-section {
+  display: grid;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.checkout-saved-address,
+.checkout-delivery-instructions {
+  display: grid;
+  gap: 8px;
+}
+
 .checkout-delivery-header h2 {
   margin: 0;
 }
@@ -697,6 +709,21 @@ body {
 
 .main .checkout-manage-addresses {
   flex: 0 0 auto;
+}
+
+.checkout-delivery-section fieldset {
+  margin: 0;
+  padding: 16px;
+  border-color: var(--border);
+  border-radius: 8px;
+}
+
+.checkout-delivery-section fieldset p {
+  margin: 8px 0 0;
+}
+
+.checkout-delivery-section .delivery-panel {
+  margin: 0;
 }
 
 .checkout-reference-row {
