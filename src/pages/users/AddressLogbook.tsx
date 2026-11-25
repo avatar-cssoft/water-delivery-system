@@ -3,7 +3,14 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
+import DropoffPicker from '../../components/DropoffPicker'
+import { deliveryPoint, type Point } from '../../lib/deliveryMap'
+
 type Address = {
+  delivery_latitude?: number | null
+  delivery_longitude?: number | null
+  delivery_instructions?: string | null
+
   id: string
   user_id: string
   recipient_name: string
@@ -33,6 +40,8 @@ function AddressLogbook() {
   const [loading, setLoading] = useState(true)
   const [signedIn, setSignedIn] = useState(false)
   const [userId, setUserId] = useState('')
+  const [point, setPoint] = useState<Point | null>(null)
+  const [instructions, setInstructions] = useState('')
   const [addresses, setAddresses] = useState<Address[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -93,6 +102,7 @@ function AddressLogbook() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target
+    if (['address_line', 'barangay', 'city', 'province', 'postal_code'].includes(name)) setPoint(null)
 
     setForm(prev => ({
       ...prev,
@@ -103,6 +113,8 @@ function AddressLogbook() {
   // Open form for adding an address
   const handleAdd = () => {
     setEditingId(null)
+    setPoint(null)
+    setInstructions('')
     setForm(initialForm)
     setShowForm(true)
     setError('')
@@ -111,6 +123,8 @@ function AddressLogbook() {
   // Open form for editing an address
   const handleEdit = (address: Address) => {
     setEditingId(address.id)
+    setPoint(deliveryPoint(address))
+    setInstructions(address.delivery_instructions ?? '')
 
     setForm({
       recipient_name: address.recipient_name,
@@ -134,11 +148,18 @@ function AddressLogbook() {
     setSaving(true)
     setError('')
 
+    const addressFields = {
+      ...form,
+      delivery_latitude: point?.latitude ?? null,
+      delivery_longitude: point?.longitude ?? null,
+      delivery_instructions: instructions.trim() || null,
+    }
+
     try {
       if (editingId) {
         const { error: updateError } = await supabase
           .from('addresses')
-          .update(form)
+          .update(addressFields)
           .eq('id', editingId)
           .eq('user_id', userId)
 
@@ -147,7 +168,7 @@ function AddressLogbook() {
         const { error: insertError } = await supabase
           .from('addresses')
           .insert({
-            ...form,
+            ...addressFields,
             user_id: userId,
             is_default: addresses.length === 0
           })
@@ -348,6 +369,12 @@ function AddressLogbook() {
             />
 
           </div>
+
+          <DropoffPicker key={JSON.stringify([form.address_line, form.barangay, form.city, form.province, form.postal_code])}
+            point={point} onChange={setPoint} />
+          <label htmlFor="saved-delivery-instructions">Delivery instructions (optional)</label>
+          <input id="saved-delivery-instructions" value={instructions} maxLength={500}
+            onChange={event => setInstructions(event.target.value)} />
 
           <button
             type="submit"

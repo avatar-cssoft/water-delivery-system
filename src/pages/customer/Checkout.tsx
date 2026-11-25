@@ -1,11 +1,18 @@
 
 import { useEffect, useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { getCart, clearCart } from '../../lib/cart'
 import { formatPrice } from '../../lib/api/products'
 
+import DropoffPicker from '../../components/DropoffPicker'
+import { deliveryPoint, type Point } from '../../lib/deliveryMap'
+
 type Address = {
+  delivery_latitude?: number | null
+  delivery_longitude?: number | null
+  delivery_instructions?: string | null
+
   id: string
   user_id: string
   recipient_name: string
@@ -32,6 +39,9 @@ export default function Checkout() {
   const [addresses, setAddresses] = useState<Address[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState('')
   const [address, setAddress] = useState('')
+  const [point, setPoint] = useState<Point | null>(null)
+  const [instructions, setInstructions] = useState('')
+  const [placedOrderId, setPlacedOrderId] = useState<number | null>(null)
 
   const [loadingAddresses, setLoadingAddresses] = useState(true)
   const [loading, setLoading] = useState(false)
@@ -119,6 +129,8 @@ export default function Checkout() {
 
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress.id)
+          setPoint(deliveryPoint(defaultAddress))
+          setInstructions(defaultAddress.delivery_instructions ?? '')
           setAddress(current =>
             current || formatAddress(defaultAddress)
           )
@@ -218,6 +230,8 @@ export default function Checkout() {
     setError('')
 
     const selectedAddress = addresses.find(item => item.id === id)
+    setPoint(deliveryPoint(selectedAddress))
+    setInstructions(selectedAddress?.delivery_instructions ?? '')
 
     if (selectedAddress) {
       setAddress(formatAddress(selectedAddress))
@@ -257,6 +271,8 @@ export default function Checkout() {
         .insert({
           user_id: user.id,
           delivery_address: address.trim(),
+          ...(point ? { delivery_latitude: point.latitude, delivery_longitude: point.longitude } : {}),
+          ...(instructions.trim() ? { delivery_instructions: instructions.trim() } : {}),
           total_amount: total,
           status: 'pending'
         })
@@ -297,6 +313,7 @@ export default function Checkout() {
       clearCart()
 
       setCheckoutComplete?.(true)
+      setPlacedOrderId(order.id)
       setPendingOrderReference(order.order_reference)
       setShowOrderPlaced(true)
     } catch (err: unknown) {
@@ -355,6 +372,7 @@ export default function Checkout() {
     return (
       <main className="checkout-confirmation">
         <h1>Order Reference Number</h1>
+        {placedOrderId !== null && <Link to={`/orders/${placedOrderId}/track`}>Track this order</Link>}
 
         <div className="checkout-reference-row">
           <input
@@ -516,16 +534,26 @@ export default function Checkout() {
           <textarea
             id="delivery-address"
             value={address}
-            onChange={event => setAddress(event.target.value)}
+            onChange={event => {
+              setAddress(event.target.value)
+              setSelectedAddressId('')
+              setPoint(null)
+              setInstructions('')
+            }}
             placeholder="Enter your complete delivery address"
             required
             rows={3}
           />
 
+          <DropoffPicker key={address} point={point} onChange={setPoint} />
+          <label htmlFor="checkout-delivery-instructions">Delivery instructions (optional)</label>
+          <input id="checkout-delivery-instructions" value={instructions} maxLength={500}
+            onChange={event => setInstructions(event.target.value)} />
+
           <p>
             <button
               type="button"
-              onClick={() => navigate('/account')}
+              onClick={() => navigate('/account/address-logbook')}
             >
               Manage Saved Addresses
             </button>

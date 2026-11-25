@@ -25,6 +25,13 @@ export default function CustomerHome() {
       <p>Welcome! What would you like to do today?</p>
 
       <nav className="customer-home-grid" aria-label="Customer shortcuts">
+        <NavLink className="customer-home-tile customer-home-tile--account" to="/orders">
+          <span className="customer-home-tile-content">
+            <strong>My orders</strong>
+            <span>Track a delivery</span>
+          </span>
+          <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
+        </NavLink>
         <NavLink
           className="customer-home-tile customer-home-tile--browse"
           to="/catalog"
