@@ -38,6 +38,7 @@ function Orders() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -202,6 +203,21 @@ function Orders() {
     )
   }
 
+  const filteredOrders = orders.filter((order) => {
+    const searchLower = searchTerm.toLowerCase()
+    const reference = getOrderReference(order).toLowerCase()
+    const customer = getCustomerName(order).toLowerCase()
+    const address = order.delivery_address.toLowerCase()
+    const status = formatStatus(order.status).toLowerCase()
+
+    return (
+      reference.includes(searchLower) ||
+      customer.includes(searchLower) ||
+      address.includes(searchLower) ||
+      status.includes(searchLower)
+    )
+  })
+
   return (
     <div style={pageStyle}>
       <h1>Customer Orders</h1>
@@ -226,6 +242,14 @@ function Orders() {
         >
           {loading ? 'Loading...' : 'Refresh Orders'}
         </button>
+
+        <input
+          type="text"
+          placeholder="Search orders..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={searchInputStyle}
+        />
       </div>
 
       {error && (
@@ -238,12 +262,12 @@ function Orders() {
 
       {loading ? (
         <p>Loading orders...</p>
-      ) : orders.length === 0 && !error ? (
-        <p>No orders found.</p>
-      ) : orders.length > 0 ? (
+      ) : filteredOrders.length === 0 && !error ? (
+        <p>{searchTerm ? 'No matching orders found.' : 'No orders found.'}</p>
+      ) : filteredOrders.length > 0 ? (
         <>
           <p>
-            Total orders: <strong>{orders.length}</strong>
+            Total orders: <strong>{filteredOrders.length}</strong>{searchTerm && ` (filtered from ${orders.length})`}
           </p>
 
           <div style={{ overflowX: 'auto' }}>
@@ -260,7 +284,7 @@ function Orders() {
               </thead>
 
               <tbody>
-                {orders.map((order) => {
+                {filteredOrders.map((order) => {
                   const options = statusOptions.includes(order.status)
                     ? statusOptions
                     : [order.status, ...statusOptions]
@@ -366,6 +390,15 @@ const errorStyle: React.CSSProperties = {
 
 const successStyle: React.CSSProperties = {
   color: '#15803d',
+}
+
+const searchInputStyle: React.CSSProperties = {
+  padding: '10px 16px',
+  border: '1px solid var(--border)',
+  borderRadius: '5px',
+  backgroundColor: 'var(--surface)',
+  color: 'var(--text)',
+  minWidth: '250px',
 }
 
 export default Orders
