@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
@@ -30,18 +31,21 @@ export default function Checkout() {
 
   const [addresses, setAddresses] = useState<Address[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState('')
-  const [manualAddress, setManualAddress] = useState('')
-  const [useManualAddress, setUseManualAddress] = useState(false)
+  const [address, setAddress] = useState('')
 
   const [loadingAddresses, setLoadingAddresses] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [pendingOrderReference, setPendingOrderReference] = useState<string | null>(null)
+  const [pendingOrderReference, setPendingOrderReference] =
+    useState<string | null>(null)
+
   const [showOrderPlaced, setShowOrderPlaced] = useState(false)
   const [orderReference, setOrderReference] = useState<string | null>(null)
   const [millisecondsLeft, setMillisecondsLeft] = useState(5000)
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
+
+  const [copyState, setCopyState] =
+    useState<'idle' | 'copied' | 'error'>('idle')
 
   const cart = getCart()
 
@@ -50,11 +54,24 @@ export default function Checkout() {
     0
   )
 
-  // Load saved addresses belonging to the logged-in customer.
+  // Format a saved address.
+  function formatAddress(savedAddress: Address) {
+    return [
+      savedAddress.address_line,
+      savedAddress.barangay,
+      savedAddress.city,
+      savedAddress.province,
+      savedAddress.postal_code
+    ]
+      .filter(Boolean)
+      .join(', ')
+  }
+
+  // Load saved addresses and profile address.
   useEffect(() => {
     let cancelled = false
 
-    const loadAddresses = async () => {
+    async function loadAddresses() {
       try {
         const {
           data: { user },
@@ -68,40 +85,66 @@ export default function Checkout() {
           return
         }
 
+        // Load addresses from the addresses table.
         const { data, error: addressError } = await supabase
           .from('addresses')
           .select('*')
           .eq('user_id', user.id)
-          .order('is_default', { ascending: false })
-          .order('created_at', { ascending: false })
-
-        if (addressError) throw addressError
 
         if (cancelled) return
 
-        const savedAddresses = (data || []) as Address[]
+        if (addressError) {
+          throw addressError
+        }
+
+        const savedAddresses = ((data || []) as Address[]).sort(
+          (a, b) => {
+            if (a.is_default !== b.is_default) {
+              return Number(b.is_default) - Number(a.is_default)
+            }
+
+            return (
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+            )
+          }
+        )
 
         setAddresses(savedAddresses)
 
-        // Automatically select the default address.
-        const defaultAddress = savedAddresses.find(
-          address => address.is_default
-        )
+        // Prefer the default saved address.
+        const defaultAddress =
+          savedAddresses.find(item => item.is_default) ||
+          savedAddresses[0]
 
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress.id)
-        } else if (savedAddresses.length > 0) {
-          setSelectedAddressId(savedAddresses[0].id)
+          setAddress(current =>
+            current || formatAddress(defaultAddress)
+          )
         } else {
-          // Allow manual address entry if no saved address exists.
-          setUseManualAddress(true)
+          // No saved addresses: use the old profile address as fallback.
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('address')
+            .eq('id', user.id)
+            .single()
+
+          if (cancelled) return
+
+          const savedProfileAddress =
+            (profile as { address: string | null } | null)?.address
+
+          if (savedProfileAddress) {
+            setAddress(current => current || savedProfileAddress)
+          }
         }
       } catch (err) {
         if (!cancelled) {
           setError(
             err instanceof Error
               ? err.message
-              : 'Failed to load saved addresses.'
+              : 'Failed to load delivery addresses.'
           )
         }
       } finally {
@@ -118,11 +161,12 @@ export default function Checkout() {
     }
   }, [navigate])
 
+  // Reset checkout state when leaving.
   useEffect(() => {
     return () => setCheckoutComplete?.(false)
   }, [setCheckoutComplete])
 
-  // Show order confirmation.
+  // Show order placed confirmation.
   useEffect(() => {
     if (!showOrderPlaced || !pendingOrderReference) return
 
@@ -134,7 +178,7 @@ export default function Checkout() {
     return () => window.clearTimeout(revealReference)
   }, [pendingOrderReference, showOrderPlaced])
 
-  // Redirect after showing the order reference.
+  // Five-second redirect countdown.
   useEffect(() => {
     if (!orderReference) return
 
@@ -157,30 +201,27 @@ export default function Checkout() {
     }
   }, [navigate, orderReference])
 
-  // Reset copy status.
+  // Reset copy button.
   useEffect(() => {
     if (copyState !== 'copied') return
 
-    const resetCopyState = window.setTimeout(() => {
+    const reset = window.setTimeout(() => {
       setCopyState('idle')
     }, 1400)
 
-    return () => window.clearTimeout(resetCopyState)
+    return () => window.clearTimeout(reset)
   }, [copyState])
 
-  // Format a saved address for the order.
-  const formatAddress = (address: Address) => {
-    return [
-      address.recipient_name,
-      address.phone,
-      address.address_line,
-      address.barangay,
-      address.city,
-      address.province,
-      address.postal_code
-    ]
-      .filter(Boolean)
-      .join(', ')
+  // Select a saved address.
+  function handleAddressSelection(id: string) {
+    setSelectedAddressId(id)
+    setError('')
+
+    const selectedAddress = addresses.find(item => item.id === id)
+
+    if (selectedAddress) {
+      setAddress(formatAddress(selectedAddress))
+    }
   }
 
   // Place order.
@@ -190,26 +231,9 @@ export default function Checkout() {
       return
     }
 
-    let deliveryAddress = ''
-
-    if (useManualAddress) {
-      deliveryAddress = manualAddress.trim()
-
-      if (!deliveryAddress) {
-        setError('Please enter your delivery address.')
-        return
-      }
-    } else {
-      const selectedAddress = addresses.find(
-        address => address.id === selectedAddressId
-      )
-
-      if (!selectedAddress) {
-        setError('Please select a delivery address.')
-        return
-      }
-
-      deliveryAddress = formatAddress(selectedAddress)
+    if (!address.trim()) {
+      setError('Please enter your delivery address.')
+      return
     }
 
     setLoading(true)
@@ -227,12 +251,12 @@ export default function Checkout() {
         throw new Error('Please log in before placing your order.')
       }
 
-      // Create the main order with the selected delivery address.
+      // Create order.
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
-          delivery_address: deliveryAddress,
+          delivery_address: address.trim(),
           total_amount: total,
           status: 'pending'
         })
@@ -241,13 +265,17 @@ export default function Checkout() {
 
       if (orderError) throw orderError
 
+      if (!order) {
+        throw new Error('Unable to create your order.')
+      }
+
       if (!order.order_reference) {
         throw new Error(
           `Order #${order.id} was created, but its reference number was not generated. Configure a database default or trigger for order_reference.`
         )
       }
 
-      // Save products belonging to this order.
+      // Insert order items.
       const orderItems = cart.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
@@ -265,6 +293,7 @@ export default function Checkout() {
         )
       }
 
+      // Clear cart after successful order.
       clearCart()
 
       setCheckoutComplete?.(true)
@@ -281,6 +310,7 @@ export default function Checkout() {
     }
   }
 
+  // Copy order reference.
   async function copyReference() {
     if (!orderReference) {
       setCopyState('error')
@@ -302,10 +332,7 @@ export default function Checkout() {
         ? 'Unable to copy the reference number. Please copy it manually.'
         : ''
 
-  if (loadingAddresses) {
-    return <p>Loading your delivery addresses...</p>
-  }
-
+  // Order placed screen.
   if (showOrderPlaced) {
     return (
       <main
@@ -317,11 +344,13 @@ export default function Checkout() {
             <path d="M12 25l8 8 17-18" />
           </svg>
         </div>
+
         <h1>Order placed</h1>
       </main>
     )
   }
 
+  // Order reference screen.
   if (orderReference) {
     return (
       <main className="checkout-confirmation">
@@ -405,6 +434,7 @@ export default function Checkout() {
     )
   }
 
+  // Checkout screen.
   return (
     <main>
       <h1>Checkout</h1>
@@ -427,6 +457,7 @@ export default function Checkout() {
               <p>
                 {item.product.name} × {item.quantity}
               </p>
+
               <p>
                 {formatPrice(item.product.price * item.quantity)}
               </p>
@@ -440,114 +471,56 @@ export default function Checkout() {
           {addresses.length > 0 && (
             <>
               <label htmlFor="saved-address">
-                Choose a saved delivery address
+                Choose a saved address
               </label>
 
               <select
                 id="saved-address"
-                value={useManualAddress ? 'manual' : selectedAddressId}
-                onChange={event => {
-                  const value = event.target.value
-
-                  if (value === 'manual') {
-                    setUseManualAddress(true)
-                  } else {
-                    setUseManualAddress(false)
-                    setSelectedAddressId(value)
-                  }
-
-                  setError('')
-                }}
+                value={selectedAddressId}
+                onChange={event =>
+                  handleAddressSelection(event.target.value)
+                }
               >
-                {addresses.map(address => (
-                  <option key={address.id} value={address.id}>
-                    {address.label || 'Other'}
-                    {address.is_default ? ' (Default)' : ''}
+                {addresses.map(savedAddress => (
+                  <option
+                    key={savedAddress.id}
+                    value={savedAddress.id}
+                  >
+                    {savedAddress.label || 'Other'}
+                    {savedAddress.is_default ? ' (Default)' : ''}
                     {' - '}
-                    {address.address_line}, {address.barangay},{' '}
-                    {address.city}
+                    {savedAddress.address_line},{' '}
+                    {savedAddress.barangay},{' '}
+                    {savedAddress.city}
                   </option>
                 ))}
-
-                <option value="manual">
-                  Enter a different address
-                </option>
               </select>
-
-              {!useManualAddress && selectedAddressId && (
-                <div className="checkout-selected-address">
-                  {(() => {
-                    const selected = addresses.find(
-                      address => address.id === selectedAddressId
-                    )
-
-                    if (!selected) return null
-
-                    return (
-                      <>
-                        <p>
-                          <strong>Recipient:</strong>{' '}
-                          {selected.recipient_name}
-                        </p>
-                        <p>
-                          <strong>Phone:</strong> {selected.phone}
-                        </p>
-                        <p>
-                          <strong>Address:</strong>{' '}
-                          {[
-                            selected.address_line,
-                            selected.barangay,
-                            selected.city,
-                            selected.province,
-                            selected.postal_code
-                          ].filter(Boolean).join(', ')}
-                        </p>
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
             </>
           )}
 
-          {useManualAddress && (
-            <>
-              <label htmlFor="manual-delivery-address">
-                Enter Delivery Address
-              </label>
-
-              <textarea
-                id="manual-delivery-address"
-                value={manualAddress}
-                onChange={event => setManualAddress(event.target.value)}
-                placeholder="Enter your complete delivery address"
-                required
-                rows={3}
-              />
-            </>
+          {loadingAddresses && (
+            <p>Loading saved addresses...</p>
           )}
 
-          {addresses.length === 0 && (
-            <>
-              <p>
-                You don't have any saved addresses yet. Enter your
-                delivery address below.
-              </p>
-
-              <label htmlFor="manual-delivery-address">
-                Delivery Address
-              </label>
-
-              <textarea
-                id="manual-delivery-address"
-                value={manualAddress}
-                onChange={event => setManualAddress(event.target.value)}
-                placeholder="Enter your complete delivery address"
-                required
-                rows={3}
-              />
-            </>
+          {!loadingAddresses && addresses.length === 0 && (
+            <p>
+              You can use your profile address or enter a different
+              delivery address below.
+            </p>
           )}
+
+          <label htmlFor="delivery-address">
+            Delivery Address
+          </label>
+
+          <textarea
+            id="delivery-address"
+            value={address}
+            onChange={event => setAddress(event.target.value)}
+            placeholder="Enter your complete delivery address"
+            required
+            rows={3}
+          />
 
           <p>
             <button
@@ -558,12 +531,16 @@ export default function Checkout() {
             </button>
           </p>
 
-          {error && <p role="alert">{error}</p>}
+          {error && (
+            <p role="alert">
+              {error}
+            </p>
+          )}
 
           <button
             type="button"
             onClick={placeOrder}
-            disabled={loading}
+            disabled={loading || cart.length === 0}
           >
             {loading ? 'Placing Order...' : 'Place Order'}
           </button>
