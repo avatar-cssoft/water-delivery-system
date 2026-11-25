@@ -36,6 +36,8 @@ export default function Checkout() {
 
   const setCheckoutComplete = outletContext?.setCheckoutComplete
 
+  const [addresses, setAddresses] = useState<Address[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState('')
   const [address, setAddress] = useState('')
   const [addressLoading, setAddressLoading] = useState(true)
   const [point, setPoint] = useState<Point | null>(null)
@@ -121,12 +123,14 @@ export default function Checkout() {
             )
           }
         )
+        setAddresses(savedAddresses)
 
         const defaultAddress =
           savedAddresses.find(item => item.is_default) ||
           savedAddresses[0]
 
         if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.id)
           setPoint(deliveryPoint(defaultAddress))
           setInstructions(defaultAddress.delivery_instructions ?? '')
           setAddress(formatAddress(defaultAddress))
@@ -181,6 +185,21 @@ export default function Checkout() {
       cancelled = true
     }
   }, [])
+
+  function handleAddressSelection(id: string) {
+    const selectedAddress = addresses.find(item => item.id === id)
+
+    if (!selectedAddress) {
+      setError('The selected saved address could not be found.')
+      return
+    }
+
+    setSelectedAddressId(id)
+    setError('')
+    setPoint(deliveryPoint(selectedAddress))
+    setInstructions(selectedAddress.delivery_instructions ?? '')
+    setAddress(formatAddress(selectedAddress))
+  }
 
   // Reset checkout state when leaving.
   useEffect(() => {
@@ -480,6 +499,27 @@ export default function Checkout() {
 
           <h2>Delivery Address</h2>
 
+          {addresses.length > 0 && (
+            <>
+              <label htmlFor="saved-address">Choose a saved address</label>
+              <select
+                id="saved-address"
+                value={selectedAddressId}
+                onChange={event => handleAddressSelection(event.target.value)}
+                disabled={addressLoading || loading}
+              >
+                {addresses.map(savedAddress => (
+                  <option key={savedAddress.id} value={savedAddress.id}>
+                    {savedAddress.label || 'Other'}
+                    {savedAddress.is_default ? ' (Default)' : ''}
+                    {' - '}
+                    {formatAddress(savedAddress)}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
           {addressLoading && (
             <p>Loading saved addresses...</p>
           )}
@@ -498,8 +538,8 @@ export default function Checkout() {
             rows={3}
           />
           <small>
-            This is your default saved address. Update it in your address
-            logbook before ordering if it needs to change.
+            This address is read-only. Choose another saved address or update
+            your address book if it needs to change.
           </small>
 
           <fieldset>

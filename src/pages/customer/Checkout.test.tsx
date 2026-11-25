@@ -8,12 +8,14 @@ import CustomerHome from './CustomerHome'
 
 const {
   getUser,
+  getAddresses,
   getProfile,
   getOrder,
   insertOrder,
   insertItems,
 } = vi.hoisted(() => ({
   getUser: vi.fn(),
+  getAddresses: vi.fn(),
   getProfile: vi.fn(),
   getOrder: vi.fn(),
   insertOrder: vi.fn(),
@@ -26,7 +28,7 @@ vi.mock('../../lib/supabase', () => {
       from: (table: string) => {
         const query = {
           select: () => query,
-          eq: () => query,
+          eq: () => table === 'addresses' ? getAddresses() : query,
           insert: (values: unknown) => {
             if (table === 'orders') {
               insertOrder(values)
@@ -84,6 +86,7 @@ beforeEach(() => {
   saveCart([{ product, quantity: 2 }])
   getUser.mockReset()
   getUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+  getAddresses.mockReset().mockResolvedValue({ data: [], error: null })
   getProfile.mockReset()
   getProfile.mockResolvedValue({ data: { address: savedAddress }, error: null })
   getOrder.mockReset()
@@ -103,6 +106,57 @@ describe('Checkout delivery address', () => {
     expect(addressBox()).toHaveAttribute('readonly')
     fireEvent.change(addressBox(), { target: { value: 'A different address' } })
     expect(addressBox()).toHaveValue(savedAddress)
+  })
+
+  it('lets customers choose a saved address without making the address editable', async () => {
+    getAddresses.mockResolvedValue({
+      data: [
+        {
+          id: 'home',
+          user_id: 'u1',
+          recipient_name: 'Customer',
+          phone: '09123456789',
+          label: 'Home',
+          address_line: '12 Session Road',
+          barangay: 'Burnham',
+          city: 'Baguio City',
+          province: 'Benguet',
+          postal_code: '2600',
+          is_default: true,
+          created_at: '2026-11-25T00:00:00Z',
+        },
+        {
+          id: 'office',
+          user_id: 'u1',
+          recipient_name: 'Customer',
+          phone: '09123456789',
+          label: 'Office',
+          address_line: '1 Office Road',
+          barangay: 'Session',
+          city: 'Baguio City',
+          province: 'Benguet',
+          postal_code: '2600',
+          is_default: false,
+          created_at: '2026-11-24T00:00:00Z',
+        },
+      ],
+      error: null,
+    })
+
+    renderCheckout()
+
+    const addressSelector = await screen.findByLabelText('Choose a saved address')
+    expect(addressBox()).toHaveValue(
+      '12 Session Road, Burnham, Baguio City, Benguet, 2600',
+    )
+    expect(addressBox()).toHaveAttribute('readonly')
+
+    fireEvent.change(addressSelector, { target: { value: 'office' } })
+
+    expect(addressBox()).toHaveValue(
+      '1 Office Road, Session, Baguio City, Benguet, 2600',
+    )
+    expect(addressBox()).toHaveAttribute('readonly')
   })
 
   it('shows requested delivery window placeholders while scheduling is WIP', () => {
