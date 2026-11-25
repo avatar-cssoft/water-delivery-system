@@ -104,7 +104,10 @@ describe('Checkout delivery address', () => {
   it('starts with the address saved on the profile', async () => {
     renderCheckout()
     expect(await screen.findByDisplayValue(savedAddress)).toBe(addressBox())
+    expect(addressBox().tagName).toBe('INPUT')
     expect(addressBox()).toHaveAttribute('readonly')
+    expect(screen.getAllByRole('heading', { name: 'Delivery Address' }))
+      .toHaveLength(1)
     fireEvent.change(addressBox(), { target: { value: 'A different address' } })
     expect(addressBox()).toHaveValue(savedAddress)
   })

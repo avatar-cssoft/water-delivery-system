@@ -497,7 +497,16 @@ export default function Checkout() {
 
           <h3>Total: {formatPrice(total)}</h3>
 
-          <h2>Delivery Address</h2>
+          <div className="checkout-delivery-header">
+            <h2>Delivery Address</h2>
+            <button
+              className="checkout-manage-addresses"
+              type="button"
+              onClick={() => navigate('/account/address-logbook')}
+            >
+              Manage Saved Addresses
+            </button>
+          </div>
 
           {addresses.length > 0 && (
             <>
@@ -524,23 +533,32 @@ export default function Checkout() {
             <p>Loading saved addresses...</p>
           )}
 
-          <label htmlFor="delivery-address">
-            Delivery Address
-          </label>
-
-          <textarea
+          <input
+            className="checkout-delivery-address"
             id="delivery-address"
+            type="text"
             value={address}
+            size={Math.max(24, address.length)}
             readOnly
             aria-readonly="true"
+            aria-label="Delivery Address"
             placeholder="Loading saved delivery address..."
             required
-            rows={3}
           />
           <small>
             This address is read-only. Choose another saved address or update
             your address book if it needs to change.
           </small>
+
+          <label htmlFor="checkout-delivery-instructions">
+            Delivery instructions (optional)
+          </label>
+          <input
+            id="checkout-delivery-instructions"
+            value={instructions}
+            maxLength={500}
+            onChange={event => setInstructions(event.target.value)}
+          />
 
           <fieldset>
             <legend>Requested delivery window</legend>
@@ -551,18 +569,6 @@ export default function Checkout() {
           </fieldset>
 
           <DropoffPicker key={address} point={point} onChange={setPoint} />
-          <label htmlFor="checkout-delivery-instructions">Delivery instructions (optional)</label>
-          <input id="checkout-delivery-instructions" value={instructions} maxLength={500}
-            onChange={event => setInstructions(event.target.value)} />
-
-          <p>
-            <button
-              type="button"
-              onClick={() => navigate('/account/address-logbook')}
-            >
-              Manage Saved Addresses
-            </button>
-          </p>
 
           {error && (
             <p role="alert">

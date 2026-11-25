@@ -678,6 +678,27 @@ body {
   font-size: 1.85rem;
 }
 
+.checkout-delivery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkout-delivery-header h2 {
+  margin: 0;
+}
+
+.main input.checkout-delivery-address {
+  width: auto;
+  max-width: 100%;
+}
+
+.main .checkout-manage-addresses {
+  flex: 0 0 auto;
+}
+
 .checkout-reference-row {
   display: flex;
   width: 100%;
