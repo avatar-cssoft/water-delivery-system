@@ -36,18 +36,11 @@ export default function Checkout() {
 
   const setCheckoutComplete = outletContext?.setCheckoutComplete
 
-  const [addresses, setAddresses] = useState<Address[]>([])
-  const [selectedAddressId, setSelectedAddressId] = useState('')
   const [address, setAddress] = useState('')
-<<<<<<< HEAD
   const [addressLoading, setAddressLoading] = useState(true)
-=======
   const [point, setPoint] = useState<Point | null>(null)
   const [instructions, setInstructions] = useState('')
   const [placedOrderId, setPlacedOrderId] = useState<number | null>(null)
-
-  const [loadingAddresses, setLoadingAddresses] = useState(true)
->>>>>>> origin/main
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -81,7 +74,7 @@ export default function Checkout() {
       .join(', ')
   }
 
-  // Load saved addresses and profile address.
+  // Load the default saved address, falling back to the legacy profile address.
   useEffect(() => {
     let cancelled = false
 
@@ -92,14 +85,17 @@ export default function Checkout() {
           error: userError
         } = await supabase.auth.getUser()
 
-        if (userError) throw userError
+        if (userError) {
+          throw new Error(
+            `Could not load your saved delivery address: ${userError.message}`,
+          )
+        }
 
         if (!user) {
-          navigate('/login')
+          setError('Sign in to load your saved delivery address.')
           return
         }
 
-        // Load addresses from the addresses table.
         const { data, error: addressError } = await supabase
           .from('addresses')
           .select('*')
@@ -108,10 +104,12 @@ export default function Checkout() {
         if (cancelled) return
 
         if (addressError) {
-          throw addressError
+          throw new Error(
+            `Could not load your saved delivery address: ${addressError.message}`,
+          )
         }
 
-        const savedAddresses = ((data || []) as Address[]).sort(
+        const savedAddresses = ((data ?? []) as Address[]).sort(
           (a, b) => {
             if (a.is_default !== b.is_default) {
               return Number(b.is_default) - Number(a.is_default)
@@ -124,23 +122,16 @@ export default function Checkout() {
           }
         )
 
-        setAddresses(savedAddresses)
-
-        // Prefer the default saved address.
         const defaultAddress =
           savedAddresses.find(item => item.is_default) ||
           savedAddresses[0]
 
         if (defaultAddress) {
-          setSelectedAddressId(defaultAddress.id)
           setPoint(deliveryPoint(defaultAddress))
           setInstructions(defaultAddress.delivery_instructions ?? '')
-          setAddress(current =>
-            current || formatAddress(defaultAddress)
-          )
+          setAddress(formatAddress(defaultAddress))
         } else {
-          // No saved addresses: use the old profile address as fallback.
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('address')
             .eq('id', user.id)
@@ -148,24 +139,38 @@ export default function Checkout() {
 
           if (cancelled) return
 
+          if (profileError) {
+            throw new Error(
+              `Could not load your saved delivery address: ${profileError.message}`,
+            )
+          }
+
           const savedProfileAddress =
             (profile as { address: string | null } | null)?.address
 
-          if (savedProfileAddress) {
-            setAddress(current => current || savedProfileAddress)
+          if (!savedProfileAddress?.trim()) {
+            setError(
+              'No saved delivery address was found. Add one to your account before placing an order.',
+            )
+            return
           }
+
+          setAddress(savedProfileAddress)
         }
       } catch (err) {
+        console.error('Could not load saved delivery address:', err)
         if (!cancelled) {
+          const detail =
+            err instanceof Error ? err.message : 'an unexpected error occurred'
           setError(
-            err instanceof Error
-              ? err.message
-              : 'Failed to load delivery addresses.'
+            detail.startsWith('Could not load your saved delivery address:')
+              ? detail
+              : `Could not load your saved delivery address: ${detail}`,
           )
         }
       } finally {
         if (!cancelled) {
-          setLoadingAddresses(false)
+          setAddressLoading(false)
         }
       }
     }
@@ -175,7 +180,7 @@ export default function Checkout() {
     return () => {
       cancelled = true
     }
-  }, [navigate])
+  }, [])
 
   // Reset checkout state when leaving.
   useEffect(() => {
@@ -228,94 +233,6 @@ export default function Checkout() {
     return () => window.clearTimeout(reset)
   }, [copyState])
 
-<<<<<<< HEAD
-  // Checkout uses the address saved on the customer's profile.
-  useEffect(() => {
-    let cancelled = false
-
-    const loadSavedAddress = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
-
-      if (userError) {
-        throw new Error(
-          `Could not load your saved delivery address: ${userError.message}`,
-        )
-      }
-      if (!user) {
-        if (!cancelled) {
-          setError('Sign in to load your saved delivery address.')
-        }
-        return
-      }
-
-      const { data, error: profileError } = await supabase
-        .from('profiles')
-        .select('address')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError) {
-        throw new Error(
-          `Could not load your saved delivery address: ${profileError.message}`,
-        )
-      }
-
-      const saved = (data as { address: string | null } | null)?.address
-
-      if (!saved?.trim()) {
-        if (!cancelled) {
-          setError(
-            'No saved delivery address was found. Add one to your account before placing an order.',
-          )
-        }
-        return
-      }
-
-      if (!cancelled) setAddress(saved)
-=======
-  // Select a saved address.
-  function handleAddressSelection(id: string) {
-    setSelectedAddressId(id)
-    setError('')
-
-    const selectedAddress = addresses.find(item => item.id === id)
-    setPoint(deliveryPoint(selectedAddress))
-    setInstructions(selectedAddress?.delivery_instructions ?? '')
-
-    if (selectedAddress) {
-      setAddress(formatAddress(selectedAddress))
->>>>>>> origin/main
-    }
-  }
-
-<<<<<<< HEAD
-    loadSavedAddress().catch((err: unknown) => {
-      console.error('Could not load saved delivery address:', err)
-
-      if (!cancelled) {
-        const detail =
-          err instanceof Error ? err.message : 'an unexpected error occurred'
-        setError(
-          detail.startsWith('Could not load your saved delivery address:')
-            ? detail
-            : `Could not load your saved delivery address: ${detail}`,
-        )
-      }
-    }).finally(() => {
-      if (!cancelled) setAddressLoading(false)
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-=======
-  // Place order.
->>>>>>> origin/main
   async function placeOrder() {
     if (cart.length === 0) {
       setError('Your cart is empty.')
@@ -563,45 +480,8 @@ export default function Checkout() {
 
           <h2>Delivery Address</h2>
 
-          {addresses.length > 0 && (
-            <>
-              <label htmlFor="saved-address">
-                Choose a saved address
-              </label>
-
-              <select
-                id="saved-address"
-                value={selectedAddressId}
-                onChange={event =>
-                  handleAddressSelection(event.target.value)
-                }
-              >
-                {addresses.map(savedAddress => (
-                  <option
-                    key={savedAddress.id}
-                    value={savedAddress.id}
-                  >
-                    {savedAddress.label || 'Other'}
-                    {savedAddress.is_default ? ' (Default)' : ''}
-                    {' - '}
-                    {savedAddress.address_line},{' '}
-                    {savedAddress.barangay},{' '}
-                    {savedAddress.city}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          {loadingAddresses && (
+          {addressLoading && (
             <p>Loading saved addresses...</p>
-          )}
-
-          {!loadingAddresses && addresses.length === 0 && (
-            <p>
-              You can use your profile address or enter a different
-              delivery address below.
-            </p>
           )}
 
           <label htmlFor="delivery-address">
@@ -611,25 +491,15 @@ export default function Checkout() {
           <textarea
             id="delivery-address"
             value={address}
-<<<<<<< HEAD
             readOnly
             aria-readonly="true"
             placeholder="Loading saved delivery address..."
-=======
-            onChange={event => {
-              setAddress(event.target.value)
-              setSelectedAddressId('')
-              setPoint(null)
-              setInstructions('')
-            }}
-            placeholder="Enter your complete delivery address"
->>>>>>> origin/main
             required
             rows={3}
           />
           <small>
-            This address comes from your profile. Update it there before
-            ordering if it needs to change.
+            This is your default saved address. Update it in your address
+            logbook before ordering if it needs to change.
           </small>
 
           <fieldset>

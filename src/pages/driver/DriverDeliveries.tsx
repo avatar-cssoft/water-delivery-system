@@ -149,13 +149,7 @@ export default function DriverDeliveries() {
         if (deliveries.length > 0) {
           const { data: orderData, error: ordersError } = await supabase
             .from('orders')
-<<<<<<< HEAD
             .select('*')
-=======
-            .select(
-              'id, order_reference, user_id, order_date, status, total_amount, delivery_address, delivery_latitude, delivery_longitude, delivery_instructions',
-            )
->>>>>>> origin/main
             .in(
               'id',
               deliveries.map((delivery) => delivery.order_id),
