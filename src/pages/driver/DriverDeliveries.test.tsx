@@ -131,7 +131,13 @@ describe('Driver deliveries', () => {
     expect(queryCalls).toContainEqual({
       table: 'orders',
       method: 'select',
+<<<<<<< HEAD
       args: ['*'],
+=======
+      args: [
+        'id, order_reference, user_id, order_date, status, total_amount, delivery_address, delivery_latitude, delivery_longitude, delivery_instructions',
+      ],
+>>>>>>> origin/main
     })
     expect(queryCalls).toContainEqual({
       table: 'profiles',

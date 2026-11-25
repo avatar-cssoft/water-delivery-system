@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
+import DeliveryMap from '../../components/DeliveryMap'
+import { deliveryPoint, directionsUrl } from '../../lib/deliveryMap'
+import RiderTracking from '../../components/RiderTracking'
+
 type Delivery = {
   id: number
   order_id: number
@@ -9,6 +13,10 @@ type Delivery = {
 }
 
 type Order = {
+  delivery_latitude?: number | null
+  delivery_longitude?: number | null
+  delivery_instructions?: string | null
+
   id: number
   order_reference: string | null
   user_id: string
@@ -141,7 +149,13 @@ export default function DriverDeliveries() {
         if (deliveries.length > 0) {
           const { data: orderData, error: ordersError } = await supabase
             .from('orders')
+<<<<<<< HEAD
             .select('*')
+=======
+            .select(
+              'id, order_reference, user_id, order_date, status, total_amount, delivery_address, delivery_latitude, delivery_longitude, delivery_instructions',
+            )
+>>>>>>> origin/main
             .in(
               'id',
               deliveries.map((delivery) => delivery.order_id),
@@ -196,7 +210,9 @@ export default function DriverDeliveries() {
     }
 
     void loadAssignedOrders()
+    const timer = window.setInterval(() => { void loadAssignedOrders() }, 15000)
     return () => {
+      window.clearInterval(timer)
       cancelled = true
     }
   }, [])
@@ -347,6 +363,20 @@ export default function DriverDeliveries() {
                     </dd>
                   </div>
                 </dl>
+                {order && <div className="delivery-panel">
+                  {order.delivery_instructions && <p>{order.delivery_instructions}</p>}
+                  {deliveryPoint(order) && <details><summary>Preview drop-off map</summary>
+                    <DeliveryMap markers={[{ ...deliveryPoint(order)!, label: 'Drop-off' }]} />
+                  </details>}
+                  <a href={directionsUrl(order.delivery_address, deliveryPoint(order))} target="_blank" rel="noreferrer">Directions</a>
+                </div>}
+                {!['delivered', 'cancelled', 'canceled'].includes(order?.status ?? '') && <RiderTracking
+                  id={delivery.id} status={delivery.status} onStatus={status => {
+                    setAssignedOrders(current => current.map(item => item.delivery.id === delivery.id ? {
+                      delivery: { ...item.delivery, status },
+                      order: item.order ? { ...item.order, status } : undefined,
+                    } : item))
+                  }} />}
               </article>
             ))}
           </div>

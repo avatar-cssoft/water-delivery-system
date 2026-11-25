@@ -10,7 +10,14 @@ type Profile = {
   role: string | null
 }
 
+import DeliveryMap from '../../components/DeliveryMap'
+import { deliveryPoint } from '../../lib/deliveryMap'
+
 type Order = {
+  delivery_latitude?: number | null
+  delivery_longitude?: number | null
+  delivery_instructions?: string | null
+
   id: number
   order_reference: string | null
   user_id: string
@@ -105,6 +112,9 @@ function Orders() {
           status,
           total_amount,
           delivery_address,
+          delivery_latitude,
+          delivery_longitude,
+          delivery_instructions,
           created_at,
           profiles (
             id,
@@ -314,11 +324,21 @@ function Orders() {
                       <td style={cellStyle}>
                         {formatDate(order.order_date)}
                       </td>
+<<<<<<< HEAD
                       <td style={cellStyle}>{addressParts.addressLine || '—'}</td>
                       <td style={cellStyle}>{addressParts.barangay || '—'}</td>
                       <td style={cellStyle}>{addressParts.city || '—'}</td>
                       <td style={cellStyle}>{addressParts.province || '—'}</td>
                       <td style={cellStyle}>{addressParts.others || '—'}</td>
+=======
+                      <td style={cellStyle}>
+                        {order.delivery_address}
+                        {order.delivery_instructions && <p>{order.delivery_instructions}</p>}
+                        {deliveryPoint(order) && <details><summary>Preview drop-off map</summary>
+                          <DeliveryMap markers={[{ ...deliveryPoint(order)!, label: 'Drop-off' }]} />
+                        </details>}
+                      </td>
+>>>>>>> origin/main
                       <td style={cellStyle}>
                         ₱{Number(order.total_amount).toFixed(2)}
                       </td>

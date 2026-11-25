@@ -388,8 +388,8 @@ describe('Nav links by role', () => {
   })
 
   it.each([
-    ['user', ['Cart']],
-    ['customer', ['Cart']],
+    ['user', ['Cart', 'My orders']],
+    ['customer', ['Cart', 'My orders']],
     ['employee', []],
     ['rider', []],
     ['admin', ['Admin']],
@@ -455,6 +455,7 @@ describe('Nav links by role', () => {
       'Home',
       'Products',
       'Cart',
+      'My orders',
       'My Account',
       'Settings',
     ])

@@ -11,7 +11,13 @@ type DeliveryEmployee = {
   middle_initial: string | null
 }
 
+import DispatchMap from '../../components/DispatchMap'
+
 type Order = {
+  delivery_latitude?: number | null
+  delivery_longitude?: number | null
+  delivery_instructions?: string | null
+
   id: number
   user_id: string
   order_date: string | null
@@ -196,7 +202,7 @@ export default function Orders() {
             supabase
               .from('orders')
               .select(
-                'id, user_id, order_date, status, total_amount, delivery_address',
+                'id, user_id, order_date, status, total_amount, delivery_address, delivery_latitude, delivery_longitude, delivery_instructions',
               )
               .order('created_at', { ascending: false }),
             supabase
@@ -371,6 +377,8 @@ export default function Orders() {
         <p>No employees found in the Delivery department.</p>
       )}
 
+      {orders.length > 0 && <DispatchMap orders={orders} assigned={assignments} />}
+
       {orders.length === 0 ? (
         <p>No orders found.</p>
       ) : (
@@ -398,14 +406,14 @@ export default function Orders() {
 
               return (
                 <Fragment key={order.id}>
-                  <tr>
+                  <tr id={`dispatch-order-${order.id}`} tabIndex={-1}>
                     <td>#{order.id}</td>
                     <td>
                       {order.order_date
                         ? new Date(order.order_date).toLocaleString()
                         : '—'}
                     </td>
-                    <td>{order.delivery_address}</td>
+                    <td>{order.delivery_address}{order.delivery_instructions && <p>{order.delivery_instructions}</p>}</td>
                     <td>{order.customer_phone ?? '—'}</td>
                     <td>₱{Number(order.total_amount).toFixed(2)}</td>
                     <td>{order.status.replaceAll('_', ' ')}</td>

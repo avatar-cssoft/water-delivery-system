@@ -5,6 +5,7 @@ import {
   type FormEvent,
 } from 'react'
 
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '../../../lib/supabase'
 
 import {
@@ -243,7 +244,18 @@ function AddEmployee() {
         })
 
       if (employeeError) {
-        setError(employeeError.message)
+        if (employeeError instanceof FunctionsHttpError) {
+          const response: Response = employeeError.context
+          const details = await response.json().catch(() => null)
+          const reason = details?.error ?? details?.message
+          setError(
+            typeof reason === 'string' && reason.trim()
+              ? reason
+              : `Could not add employee (HTTP ${response.status}).`,
+          )
+        } else {
+          setError(employeeError.message)
+        }
         return
       }
 
