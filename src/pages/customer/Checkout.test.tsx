@@ -101,6 +101,8 @@ describe('Checkout delivery address', () => {
     renderCheckout()
     expect(await screen.findByDisplayValue(savedAddress)).toBe(addressBox())
     expect(addressBox()).toHaveAttribute('readonly')
+    fireEvent.change(addressBox(), { target: { value: 'A different address' } })
+    expect(addressBox()).toHaveValue(savedAddress)
   })
 
   it('shows requested delivery window placeholders while scheduling is WIP', () => {

@@ -77,9 +77,16 @@ export default function Checkout() {
         error: userError,
       } = await supabase.auth.getUser()
 
-      if (userError) throw userError
+      if (userError) {
+        throw new Error(
+          `Could not load your saved delivery address: ${userError.message}`,
+        )
+      }
       if (!user) {
-        throw new Error('Sign in to load your saved delivery address.')
+        if (!cancelled) {
+          setError('Sign in to load your saved delivery address.')
+        }
+        return
       }
 
       const { data, error: profileError } = await supabase
@@ -88,14 +95,21 @@ export default function Checkout() {
         .eq('id', user.id)
         .single()
 
-      if (profileError) throw profileError
+      if (profileError) {
+        throw new Error(
+          `Could not load your saved delivery address: ${profileError.message}`,
+        )
+      }
 
       const saved = (data as { address: string | null } | null)?.address
 
       if (!saved?.trim()) {
-        throw new Error(
-          'No saved delivery address was found. Add one to your account before placing an order.',
-        )
+        if (!cancelled) {
+          setError(
+            'No saved delivery address was found. Add one to your account before placing an order.',
+          )
+        }
+        return
       }
 
       if (!cancelled) setAddress(saved)
@@ -105,10 +119,12 @@ export default function Checkout() {
       console.error('Could not load saved delivery address:', err)
 
       if (!cancelled) {
+        const detail =
+          err instanceof Error ? err.message : 'an unexpected error occurred'
         setError(
-          err instanceof Error
-            ? err.message
-            : 'Could not load your saved delivery address.',
+          detail.startsWith('Could not load your saved delivery address:')
+            ? detail
+            : `Could not load your saved delivery address: ${detail}`,
         )
       }
     }).finally(() => {

@@ -131,9 +131,7 @@ describe('Driver deliveries', () => {
     expect(queryCalls).toContainEqual({
       table: 'orders',
       method: 'select',
-      args: [
-        'id, order_reference, user_id, order_date, status, total_amount, delivery_address',
-      ],
+      args: ['*'],
     })
     expect(queryCalls).toContainEqual({
       table: 'profiles',
@@ -182,7 +180,7 @@ describe('Driver deliveries', () => {
     })
   })
 
-  it('sorts orders globally by order time and shows each barangay', async () => {
+  it('sorts by barangay, then requested window and order time', async () => {
     deliveryRows = [
       { id: 8, order_id: 22, status: 'assigned', created_at: '2026-11-12T08:00:00Z' },
       { id: 9, order_id: 23, status: 'assigned', created_at: '2026-11-11T08:00:00Z' },
@@ -203,6 +201,8 @@ describe('Driver deliveries', () => {
         order_reference: 'ORD-22',
         user_id: 'customer-1',
         order_date: '2026-11-12T10:00:00Z',
+        requested_delivery_window_start: '2026-11-26T10:00:00Z',
+        requested_delivery_window_end: '2026-11-26T11:00:00Z',
         status: 'pending',
         total_amount: 120,
         delivery_address: '2 Water Street, Barangay Central, Baguio City, Benguet',
@@ -212,6 +212,8 @@ describe('Driver deliveries', () => {
         order_reference: 'ORD-23',
         user_id: 'customer-1',
         order_date: '2026-11-12T11:00:00Z',
+        requested_delivery_window_start: '2026-11-26T08:00:00Z',
+        requested_delivery_window_end: '2026-11-26T09:00:00Z',
         status: 'pending',
         total_amount: 120,
         delivery_address: '3 Hill Road, Barangay Central, Baguio City, Benguet',
@@ -223,7 +225,7 @@ describe('Driver deliveries', () => {
     await screen.findByRole('heading', { name: 'Order #ORD-21' })
     expect(
       screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
-    ).toEqual(['Order #ORD-21', 'Order #ORD-22', 'Order #ORD-23'])
+    ).toEqual(['Order #ORD-21', 'Order #ORD-23', 'Order #ORD-22'])
     expect(
       screen.getByText(
         '1 Delivery Road, Barangay Camp 7, Baguio City, Benguet',

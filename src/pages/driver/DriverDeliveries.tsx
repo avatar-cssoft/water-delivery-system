@@ -68,7 +68,30 @@ function getTimestamp(value: string | null | undefined) {
   return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp
 }
 
+function getBarangay(deliveryAddress: string | undefined) {
+  return deliveryAddress?.split(',')[1]?.trim() || 'Barangay not specified'
+}
+
 function compareAssignedOrders(first: AssignedOrder, second: AssignedOrder) {
+  const barangayOrder = getBarangay(first.order?.delivery_address).localeCompare(
+    getBarangay(second.order?.delivery_address),
+    undefined,
+    { sensitivity: 'base' },
+  )
+
+  if (barangayOrder !== 0) return barangayOrder
+
+  const firstWindowStart = getTimestamp(
+    first.order?.requested_delivery_window_start,
+  )
+  const secondWindowStart = getTimestamp(
+    second.order?.requested_delivery_window_start,
+  )
+
+  if (firstWindowStart !== secondWindowStart) {
+    return firstWindowStart - secondWindowStart
+  }
+
   const firstOrderDate = getTimestamp(first.order?.order_date)
   const secondOrderDate = getTimestamp(second.order?.order_date)
 
@@ -118,9 +141,7 @@ export default function DriverDeliveries() {
         if (deliveries.length > 0) {
           const { data: orderData, error: ordersError } = await supabase
             .from('orders')
-            .select(
-              'id, order_reference, user_id, order_date, status, total_amount, delivery_address',
-            )
+            .select('*')
             .in(
               'id',
               deliveries.map((delivery) => delivery.order_id),
@@ -213,8 +234,8 @@ export default function DriverDeliveries() {
           My Deliveries
         </h2>
         <p style={styles.sectionSubtitle}>
-          Orders are shown oldest first by order time, with barangay listed on
-          each delivery.
+          Orders are sorted by barangay, then requested delivery window. Until
+          window times are available, orders within each barangay use order time.
         </p>
 
         {pageState === 'loading' && (
