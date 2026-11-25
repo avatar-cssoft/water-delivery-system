@@ -42,6 +42,36 @@ function formatDate(value: string | null) {
   return Number.isNaN(date.getTime()) ? 'Not available' : date.toLocaleString()
 }
 
+function getBarangay(deliveryAddress: string | undefined) {
+  const barangay = deliveryAddress
+    ?.split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)[1]
+
+  return barangay || 'Barangay not specified'
+}
+
+function getTimestamp(value: string | null | undefined) {
+  if (!value) return Number.POSITIVE_INFINITY
+
+  const timestamp = Date.parse(value)
+  return Number.isNaN(timestamp) ? Number.POSITIVE_INFINITY : timestamp
+}
+
+function compareAssignedOrders(first: AssignedOrder, second: AssignedOrder) {
+  const firstOrderDate = getTimestamp(first.order?.order_date)
+  const secondOrderDate = getTimestamp(second.order?.order_date)
+
+  if (firstOrderDate !== secondOrderDate) {
+    return firstOrderDate - secondOrderDate
+  }
+
+  return (
+    getTimestamp(first.delivery.created_at) -
+    getTimestamp(second.delivery.created_at)
+  )
+}
+
 export default function DriverDeliveries() {
   const [assignedOrders, setAssignedOrders] = useState<AssignedOrder[]>([])
   const [pageState, setPageState] = useState<PageState>('loading')
@@ -146,6 +176,7 @@ export default function DriverDeliveries() {
   const completedCount = assignedOrders.filter(({ delivery }) =>
     ['completed', 'delivered'].includes(delivery.status.toLowerCase()),
   ).length
+  const sortedAssignedOrders = [...assignedOrders].sort(compareAssignedOrders)
 
   return (
     <>
@@ -172,7 +203,8 @@ export default function DriverDeliveries() {
           My Deliveries
         </h2>
         <p style={styles.sectionSubtitle}>
-          Orders assigned to your delivery account.
+          Orders are shown oldest first by order time, with barangay listed on
+          each delivery.
         </p>
 
         {pageState === 'loading' && (
@@ -200,7 +232,7 @@ export default function DriverDeliveries() {
         )}
         {pageState === 'ready' && assignedOrders.length > 0 && (
           <div style={styles.orderList}>
-            {assignedOrders.map(({ delivery, order }) => (
+            {sortedAssignedOrders.map(({ delivery, order }) => (
               <article key={delivery.id} style={styles.orderCard}>
                 <div style={styles.orderHeader}>
                   <h3 style={styles.orderTitle}>
@@ -213,6 +245,10 @@ export default function DriverDeliveries() {
                   </span>
                 </div>
                 <dl style={styles.orderDetails}>
+                  <div>
+                    <dt>Barangay</dt>
+                    <dd>{getBarangay(order?.delivery_address)}</dd>
+                  </div>
                   <div>
                     <dt>Delivery address</dt>
                     <dd>
@@ -240,12 +276,12 @@ export default function DriverDeliveries() {
                     <dd>{formatDate(order?.order_date ?? null)}</dd>
                   </div>
                   <div>
-                    <dt>Total</dt>
-                    <dd>
+                    <dt>
+                      Total:{' '}
                       {order
                         ? `₱${Number(order.total_amount).toFixed(2)}`
                         : 'Unavailable'}
-                    </dd>
+                    </dt>
                   </div>
                 </dl>
               </article>

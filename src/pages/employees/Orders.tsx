@@ -22,6 +22,19 @@ type Order = {
   profiles: Profile | Profile[] | null
 }
 
+function getAddressParts(deliveryAddress: string) {
+  const [addressLine = '', barangay = '', city = '', province = '', ...others] =
+    deliveryAddress.split(',').map((part) => part.trim())
+
+  return {
+    addressLine,
+    barangay,
+    city,
+    province,
+    others: others.filter(Boolean).join(', '),
+  }
+}
+
 const statusOptions = [
   'pending',
   'preparing',
@@ -277,7 +290,11 @@ function Orders() {
                   <th style={cellStyle}>Order Reference #</th>
                   <th style={cellStyle}>Customer Name</th>
                   <th style={cellStyle}>Order Date</th>
-                  <th style={cellStyle}>Delivery Address</th>
+                  <th style={cellStyle}>Address Line</th>
+                  <th style={cellStyle}>Barangay</th>
+                  <th style={cellStyle}>City</th>
+                  <th style={cellStyle}>Province</th>
+                  <th style={cellStyle}>Others</th>
                   <th style={cellStyle}>Total Amount</th>
                   <th style={cellStyle}>Status</th>
                 </tr>
@@ -288,6 +305,7 @@ function Orders() {
                   const options = statusOptions.includes(order.status)
                     ? statusOptions
                     : [order.status, ...statusOptions]
+                  const addressParts = getAddressParts(order.delivery_address)
 
                   return (
                     <tr key={order.id}>
@@ -296,7 +314,11 @@ function Orders() {
                       <td style={cellStyle}>
                         {formatDate(order.order_date)}
                       </td>
-                      <td style={cellStyle}>{order.delivery_address}</td>
+                      <td style={cellStyle}>{addressParts.addressLine || '—'}</td>
+                      <td style={cellStyle}>{addressParts.barangay || '—'}</td>
+                      <td style={cellStyle}>{addressParts.city || '—'}</td>
+                      <td style={cellStyle}>{addressParts.province || '—'}</td>
+                      <td style={cellStyle}>{addressParts.others || '—'}</td>
                       <td style={cellStyle}>
                         ₱{Number(order.total_amount).toFixed(2)}
                       </td>

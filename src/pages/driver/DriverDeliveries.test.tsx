@@ -44,7 +44,7 @@ describe('Driver deliveries', () => {
         order_date: '2026-11-12T08:00:00Z',
         status: 'pending',
         total_amount: 120,
-        delivery_address: '1 Delivery Road',
+        delivery_address: '1 Delivery Road, Barangay Central, Baguio City, Benguet',
       },
     ]
     customerRows = [{ id: 'customer-1', phone: '+63 912 345 6789' }]
@@ -83,16 +83,22 @@ describe('Driver deliveries', () => {
   it('shows only orders assigned to the signed-in delivery employee', async () => {
     render(<DriverDeliveries />)
 
+    expect(await screen.findByText('Barangay Central'))
+      .toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Order #ORD-21' }))
       .toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Order #21' }))
       .not.toBeInTheDocument()
-    expect(screen.getByText('1 Delivery Road')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        '1 Delivery Road, Barangay Central, Baguio City, Benguet',
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '+63 912 345 6789' })).toHaveAttribute(
       'href',
       'tel:+63 912 345 6789',
     )
-    expect(screen.getByText('₱120.00')).toBeInTheDocument()
+    expect(screen.getByText(/Total:\s*₱120\.00/)).toBeInTheDocument()
     expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument()
     expect(queryCalls).toContainEqual({
       table: 'deliveries',
@@ -116,6 +122,52 @@ describe('Driver deliveries', () => {
       method: 'in',
       args: ['id', ['customer-1']],
     })
+  })
+
+  it('sorts orders globally by order time and shows each barangay', async () => {
+    deliveryRows = [
+      { id: 8, order_id: 22, status: 'assigned', created_at: '2026-11-12T08:00:00Z' },
+      { id: 9, order_id: 23, status: 'assigned', created_at: '2026-11-11T08:00:00Z' },
+      { id: 10, order_id: 21, status: 'assigned', created_at: '2026-11-10T08:00:00Z' },
+    ]
+    orderRows = [
+      {
+        id: 21,
+        order_reference: 'ORD-21',
+        user_id: 'customer-1',
+        order_date: '2026-11-12T09:00:00Z',
+        status: 'pending',
+        total_amount: 120,
+        delivery_address: '1 Delivery Road, Barangay Camp 7, Baguio City, Benguet',
+      },
+      {
+        id: 22,
+        order_reference: 'ORD-22',
+        user_id: 'customer-1',
+        order_date: '2026-11-12T10:00:00Z',
+        status: 'pending',
+        total_amount: 120,
+        delivery_address: '2 Water Street, Barangay Central, Baguio City, Benguet',
+      },
+      {
+        id: 23,
+        order_reference: 'ORD-23',
+        user_id: 'customer-1',
+        order_date: '2026-11-12T11:00:00Z',
+        status: 'pending',
+        total_amount: 120,
+        delivery_address: '3 Hill Road, Barangay Central, Baguio City, Benguet',
+      },
+    ]
+
+    render(<DriverDeliveries />)
+
+    await screen.findByRole('heading', { name: 'Order #ORD-21' })
+    expect(
+      screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent),
+    ).toEqual(['Order #ORD-21', 'Order #ORD-22', 'Order #ORD-23'])
+    expect(screen.getByText('Barangay Camp 7')).toBeInTheDocument()
+    expect(screen.getAllByText('Barangay Central')).toHaveLength(2)
   })
 
   it('shows the empty state when no deliveries are assigned', async () => {
