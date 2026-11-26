@@ -123,6 +123,8 @@ describe('Driver deliveries', () => {
     expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument()
     expect(screen.queryByLabelText('How many empty containers were returned?'))
       .not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel' }))
+      .not.toBeInTheDocument()
     expect(queryCalls).toContainEqual({
       table: 'deliveries',
       method: 'eq',
@@ -406,6 +408,7 @@ describe('Driver deliveries', () => {
   })
 
   it('cancels a delivery with a reason and hides delivery-only controls', async () => {
+    deliveryRows[0].status = 'out_for_delivery'
     render(<DriverDeliveries />)
 
     await screen.findByRole('heading', { name: 'Order #ORD-21' })

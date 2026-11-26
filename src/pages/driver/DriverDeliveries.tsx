@@ -404,6 +404,7 @@ export default function DriverDeliveries() {
                   id={delivery.id}
                   status={delivery.status}
                   cancelButton={!cancellationDrafts[delivery.id] &&
+                    ['in_progress', 'out_for_delivery'].includes(delivery.status.toLowerCase()) &&
                     <button
                       type="button"
                       onClick={() => {
