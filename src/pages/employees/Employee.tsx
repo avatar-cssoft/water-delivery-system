@@ -55,7 +55,6 @@ function EmployeeHome() {
     <div>
       <h1>Employee Dashboard</h1>
 
-      <h2>Orders</h2>
       <p>Manage customer orders and deliveries here.</p>
 
       <button onClick={() => (window.location.href = appPath('/employee/orders'))}>

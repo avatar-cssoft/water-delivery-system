@@ -20,6 +20,8 @@ type Order = {
   id: number
   order_reference: string | null
   user_id: string
+  recipient_name?: string | null
+  customer_name?: string
   order_date: string | null
   status: string
   total_amount: number
@@ -33,6 +35,8 @@ type Order = {
 type CustomerProfile = {
   id: string
   phone: string
+  first_name?: string | null
+  last_name?: string | null
 }
 
 type AssignedOrder = {
@@ -168,7 +172,7 @@ export default function DriverDeliveries() {
           if (customerIds.length > 0) {
             const { data: customerData, error: customersError } = await supabase
               .from('profiles')
-              .select('id, phone')
+              .select('id, phone, first_name, last_name')
               .in('id', customerIds)
 
             if (customersError) throw customersError
@@ -181,6 +185,14 @@ export default function DriverDeliveries() {
           const phoneByCustomerId = new Map(
             customerProfiles.map((profile) => [profile.id, profile.phone]),
           )
+          const nameByCustomerId = new Map(
+            customerProfiles.map((profile) => [
+              profile.id,
+              [profile.first_name, profile.last_name]
+                .filter(Boolean)
+                .join(' '),
+            ]),
+          )
           setAssignedOrders(
             deliveries.map((delivery) => {
               const order = ordersById.get(delivery.order_id)
@@ -190,6 +202,9 @@ export default function DriverDeliveries() {
                   ? {
                       ...order,
                       customer_phone: phoneByCustomerId.get(order.user_id),
+                      customer_name:
+                        order.recipient_name?.trim() ||
+                        nameByCustomerId.get(order.user_id),
                     }
                   : undefined,
               }
@@ -314,7 +329,7 @@ export default function DriverDeliveries() {
                   </div>
                 </div>
                 <dl style={styles.orderDetails}>
-                  <div>
+                  <div style={styles.deliveryAddressItem}>
                     <dt>Delivery address</dt>
                     <dd style={styles.orderDetailValue}>
                       {order?.delivery_address ?? 'Order details unavailable'}
@@ -330,6 +345,12 @@ export default function DriverDeliveries() {
                       ) : (
                         'Not available'
                       )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Recipient name</dt>
+                    <dd style={styles.orderDetailValue}>
+                      {order?.customer_name || 'Not available'}
                     </dd>
                   </div>
                   {!isClosedOrder(order?.status) && !cancellationDrafts[delivery.id] && (
@@ -807,6 +828,9 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'start',
     gap: '20px 28px',
     margin: '20px 0 0',
+  },
+  deliveryAddressItem: {
+    gridColumn: '1 / -1',
   },
   requestedWindowItem: {
     gridColumn: '1 / -1',

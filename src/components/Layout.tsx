@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useNavRole } from './useNavRole'
-//BrankMark image = PLACEHOLDER FOR NOW
-import brandMarkImage from '../assets/icons/BrandMark-Placeholder.jpg'
+import brandLogoImage from '../assets/icons/logo.png'
 import { appPath } from '../lib/navigation'
 
 export default function Layout() {
@@ -24,20 +23,22 @@ export default function Layout() {
   // ROLE-BASED NAVIGATION
 
   const signedIn = role !== 'checking' && role !== 'guest'
-  // The cart lives in localStorage, so guests can fill it before logging in.
-  const showCart = role === 'guest' || role === 'customer'
-  // Customers and employees get their own page as Home. Admins keep the public
-  // Home, since their dashboard is a set of tools, linked separately.
+  const showCatalog = role === 'customer'
+  const showCart = role === 'customer'
+  // Point the primary navigation item at the dashboard for the current role.
   const homePath =
-    role === 'customer'
-      ? '/customerHome'
-      : role === 'employee'
-        ? department === 'Delivery'
-          ? '/driver'
-          : '/employee'
-        : '/'
+    role === 'admin'
+      ? '/admin'
+      : role === 'customer'
+        ? '/customerHome'
+        : role === 'employee'
+          ? department === 'Delivery'
+            ? '/driver'
+            : '/employee'
+          : '/'
+  const homeLabel = 'Home'
 
-  // Hiding a link only tidies the nav; pages still check access themselves.
+  // Navigation visibility is backed by route guards for customer-only pages.
   return (
     <div className="app-shell">
       <header
@@ -45,35 +46,31 @@ export default function Layout() {
         aria-hidden={checkoutComplete}
       >
         <nav className="site-nav" aria-label="Main">
-
-          <span className="brand">
-            <span className="brand-mark" aria-hidden="true">
-              <img src={brandMarkImage} alt="" />
-            </span>
-
-            Water Delivery
-          </span>
-          <div className="nav-links">
-            <NavLink to={homePath} end>
-              Home
-            </NavLink>
-            <NavLink to="/catalog">Products</NavLink>
-            {showCart && <NavLink to="/cart">Cart</NavLink>}
-            {role === 'customer' && <NavLink to="/orders">My orders</NavLink>}
-            {role === 'admin' && <NavLink to="/admin">Admin</NavLink>}
-            {signedIn && <NavLink to="/account">My Account</NavLink>}
-            <NavLink to="/settings">Settings</NavLink>
+          <NavLink className="brand" to={homePath} aria-label="Water Delivery home">
+            <img className="brand-logo" src={brandLogoImage} alt="" />
+          </NavLink>
+          <div className="auth-links" aria-label="Account">
             {role === 'guest' && <NavLink to="/login">Log in</NavLink>}
             {role === 'guest' && (
               <NavLink to="/register" className="nav-cta">
                 Register
               </NavLink>
             )}
+            {signedIn && <NavLink to="/account">My Account</NavLink>}
             {signedIn && (
               <button className="nav-logout" type="button" onClick={handleLogout}>
                 Logout
               </button>
             )}
+          </div>
+          <div className="nav-links">
+            <NavLink to={homePath} end>
+              {homeLabel}
+            </NavLink>
+            {showCatalog && <NavLink to="/catalog">Products</NavLink>}
+            {showCart && <NavLink to="/cart">Cart</NavLink>}
+            {role === 'customer' && <NavLink to="/orders">My orders</NavLink>}
+            <NavLink to="/settings">Settings</NavLink>
           </div>
         </nav>
       </header>
@@ -86,8 +83,8 @@ export default function Layout() {
           <div className="site-footer-content">
             <span>© {new Date().getFullYear()} Water Delivery</span>
             <nav aria-label="Footer">
-              <NavLink to={homePath}>Home</NavLink>
-              <NavLink to="/catalog">Products</NavLink>
+              <NavLink to={homePath}>{homeLabel}</NavLink>
+              {showCatalog && <NavLink to="/catalog">Products</NavLink>}
             </nav>
           </div>
         </footer>

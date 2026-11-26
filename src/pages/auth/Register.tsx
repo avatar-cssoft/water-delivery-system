@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { normalizeMobile } from '../../lib/validation/register'
 
 interface RegisterInput {
   firstName: string
@@ -76,7 +77,8 @@ function Register() {
       }
     }
 
-    if (!/^(09\d{9}|\+639\d{9})$/.test(values.phone)) {
+    const phone = normalizeMobile(values.phone)
+    if (!phone) {
       setError('Enter a valid Philippine mobile number.')
       return
     }
@@ -113,7 +115,8 @@ function Register() {
             last_name: values.lastName.trim(),
             middle_initial: values.middleInitial.trim(),
             full_name: `${values.firstName.trim()} ${values.lastName.trim()}`,
-            phone: values.phone.trim(),
+            phone,
+            initial_address_source: 'customer_registration',
             street: values.street.trim(),
             barangay: values.barangay.trim(),
             city: values.city.trim(),
@@ -213,8 +216,8 @@ function Register() {
             value={values.phone}
             onChange={handleChange}
             autoComplete="tel"
-            placeholder="09XXXXXXXXX"
-            maxLength={13}
+            placeholder="+639XXXXXXXXX or 09XXXXXXXXX"
+            maxLength={20}
             required
           />
         </div>

@@ -5,6 +5,8 @@ import { supabase } from '../../lib/supabase'
 
 import DropoffPicker from '../../components/DropoffPicker'
 import { deliveryPoint, type Point } from '../../lib/deliveryMap'
+import { normalizeMobile } from '../../lib/validation/register'
+import { validateSavedAddress } from '../../lib/validation/address'
 
 type Address = {
   delivery_latitude?: number | null
@@ -51,6 +53,32 @@ function AddressLogbook() {
   const [reloadKey, setReloadKey] = useState(0)
 
   const reloadAddresses = () => setReloadKey(key => key + 1)
+
+  const formatAddress = (address: Pick<
+    Address,
+    'address_line' | 'barangay' | 'city' | 'province' | 'postal_code'
+  >) =>
+    [
+      address.address_line,
+      address.barangay,
+      address.city,
+      address.province,
+      address.postal_code,
+    ]
+      .filter(Boolean)
+      .join(', ')
+
+  const syncProfileAddress = async (address: Pick<
+    Address,
+    'address_line' | 'barangay' | 'city' | 'province' | 'postal_code'
+  >) => {
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ address: formatAddress(address) })
+      .eq('id', userId)
+
+    if (profileError) throw profileError
+  }
 
   // Fetch logged-in user's addresses
   useEffect(() => {
@@ -101,7 +129,10 @@ function AddressLogbook() {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target
+    const { name } = e.target
+    const value = name === 'postal_code'
+      ? e.target.value.replace(/\D/g, '').slice(0, 4)
+      : e.target.value
     if (['address_line', 'barangay', 'city', 'province', 'postal_code'].includes(name)) setPoint(null)
 
     setForm(prev => ({
@@ -128,7 +159,7 @@ function AddressLogbook() {
 
     setForm({
       recipient_name: address.recipient_name,
-      phone: address.phone,
+      phone: normalizeMobile(address.phone) ?? address.phone,
       label: address.label || 'Home',
       address_line: address.address_line,
       barangay: address.barangay,
@@ -145,11 +176,19 @@ function AddressLogbook() {
   // Save or update address
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    setSaving(true)
     setError('')
 
+    const validation = validateSavedAddress(form)
+    if (!validation.ok) {
+      setError(validation.error)
+      return
+    }
+
+    setSaving(true)
+
     const addressFields = {
-      ...form,
+      ...validation.data,
+      label: form.label,
       delivery_latitude: point?.latitude ?? null,
       delivery_longitude: point?.longitude ?? null,
       delivery_instructions: instructions.trim() || null,
@@ -164,16 +203,21 @@ function AddressLogbook() {
           .eq('user_id', userId)
 
         if (updateError) throw updateError
+        if (addresses.some(address => address.id === editingId && address.is_default)) {
+          await syncProfileAddress(addressFields)
+        }
       } else {
+        const isDefault = addresses.length === 0
         const { error: insertError } = await supabase
           .from('addresses')
           .insert({
             ...addressFields,
             user_id: userId,
-            is_default: addresses.length === 0
+            is_default: isDefault
           })
 
         if (insertError) throw insertError
+        if (isDefault) await syncProfileAddress(addressFields)
       }
 
       setForm(initialForm)
@@ -217,6 +261,9 @@ function AddressLogbook() {
     setError('')
 
     try {
+      const address = addresses.find(item => item.id === id)
+      if (!address) throw new Error('The selected address could not be found.')
+
       const { error: resetError } = await supabase
         .from('addresses')
         .update({ is_default: false })
@@ -232,6 +279,7 @@ function AddressLogbook() {
 
       if (updateError) throw updateError
 
+      await syncProfileAddress(address)
       reloadAddresses()
     } catch (err) {
       setError(
@@ -307,12 +355,17 @@ function AddressLogbook() {
               placeholder="Recipient Name"
               value={form.recipient_name}
               onChange={handleChange}
+              maxLength={50}
               required
             />
 
             <input
               name="phone"
-              placeholder="Phone Number"
+              type="tel"
+              placeholder="+639XXXXXXXXX"
+              autoComplete="tel"
+              inputMode="tel"
+              maxLength={20}
               value={form.phone}
               onChange={handleChange}
               required
@@ -334,6 +387,7 @@ function AddressLogbook() {
               placeholder="House Number / Street"
               value={form.address_line}
               onChange={handleChange}
+              maxLength={255}
               required
             />
 
@@ -342,6 +396,7 @@ function AddressLogbook() {
               placeholder="Barangay"
               value={form.barangay}
               onChange={handleChange}
+              maxLength={100}
               required
             />
 
@@ -350,6 +405,7 @@ function AddressLogbook() {
               placeholder="City / Municipality"
               value={form.city}
               onChange={handleChange}
+              maxLength={100}
               required
             />
 
@@ -358,14 +414,18 @@ function AddressLogbook() {
               placeholder="Province"
               value={form.province}
               onChange={handleChange}
+              maxLength={100}
               required
             />
 
             <input
               name="postal_code"
-              placeholder="Postal Code (Optional)"
+              placeholder="Postal Code (Optional, 4 digits)"
               value={form.postal_code}
               onChange={handleChange}
+              inputMode="numeric"
+              pattern="[0-9]{4}"
+              maxLength={4}
             />
 
           </div>
@@ -478,8 +538,8 @@ function AddressLogbook() {
 
       {/* Back to Account */}
       <div className="address-logbook-back">
-        <Link to="/account">
-          ← Back to My Account
+        <Link to="/settings">
+          ← Back to Settings
         </Link>
       </div>
 

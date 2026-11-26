@@ -72,6 +72,45 @@ function DriverDashboardRoute({ children }: { children?: ReactNode }) {
   return <Navigate to={redirectPath} replace />
 }
 
+function AuthenticatedRoute({ children }: { children: ReactNode }) {
+  const { role } = useNavRole()
+
+  if (role === 'checking') {
+    return <p>Checking your account...</p>
+  }
+
+  if (role === 'guest') {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
+
+function CustomerOnlyRoute({ children }: { children: ReactNode }) {
+  const { role, department } = useNavRole()
+
+  if (role === 'checking') {
+    return <p>Checking your account...</p>
+  }
+
+  if (role === 'customer') {
+    return <>{children}</>
+  }
+
+  const redirectPath =
+    role === 'guest'
+      ? '/login'
+      : role === 'admin'
+        ? '/admin'
+        : role === 'employee'
+          ? department === 'Delivery'
+            ? '/driver'
+            : '/employee'
+          : '/'
+
+  return <Navigate to={redirectPath} replace />
+}
+
 export default function App() {
   return (
     <AccessibilityPreferencesProvider>
@@ -93,11 +132,46 @@ export default function App() {
 
             {/* Customer routes */}
             <Route path="customerHome" element={<CustomerHome />} />
-            <Route path="catalog" element={<Catalog />} />
-            <Route path="cart" element={<Cart />} />
-            <Route path="checkout" element={<Checkout />} />
-            <Route path="orders" element={<OrderTracking key="list" />} />
-            <Route path="orders/:orderId/track" element={<OrderTracking key="detail" />} />
+            <Route
+              path="catalog"
+              element={
+                <CustomerOnlyRoute>
+                  <Catalog />
+                </CustomerOnlyRoute>
+              }
+            />
+            <Route
+              path="cart"
+              element={
+                <CustomerOnlyRoute>
+                  <Cart />
+                </CustomerOnlyRoute>
+              }
+            />
+            <Route
+              path="checkout"
+              element={
+                <AuthenticatedRoute>
+                  <Checkout />
+                </AuthenticatedRoute>
+              }
+            />
+            <Route
+              path="orders"
+              element={
+                <CustomerOnlyRoute>
+                  <OrderTracking key="list" />
+                </CustomerOnlyRoute>
+              }
+            />
+            <Route
+              path="orders/:orderId/track"
+              element={
+                <CustomerOnlyRoute>
+                  <OrderTracking key="detail" />
+                </CustomerOnlyRoute>
+              }
+            />
 
             {/* Employee routes */}
             <Route path="employee" element={<EmployeeDashboardRoute />} />
