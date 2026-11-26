@@ -1,10 +1,11 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DriverDeliveries from './DriverDeliveries'
 
-const { getUser, from, queryCalls } = vi.hoisted(() => ({
+const { getUser, from, rpc, queryCalls } = vi.hoisted(() => ({
   getUser: vi.fn(),
   from: vi.fn(),
+  rpc: vi.fn(),
   queryCalls: [] as { table: string; method: string; args: unknown[] }[],
 }))
 
@@ -12,6 +13,7 @@ vi.mock('../../lib/supabase', () => ({
   supabase: {
     auth: { getUser },
     from,
+    rpc,
   },
 }))
 
@@ -52,6 +54,7 @@ describe('Driver deliveries', () => {
     orderError = null
     customerError = null
     queryCalls.length = 0
+    rpc.mockReset().mockResolvedValue({ data: null, error: null })
 
     from.mockReset().mockImplementation((table: string) => {
       const query = {
@@ -118,6 +121,8 @@ describe('Driver deliveries', () => {
       color: '#25352a',
     })
     expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('How many empty containers were returned?'))
+      .not.toBeInTheDocument()
     expect(queryCalls).toContainEqual({
       table: 'deliveries',
       method: 'eq',
@@ -280,5 +285,123 @@ describe('Driver deliveries', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Permission denied',
     )
+  })
+
+  it('records returned containers for the selected delivery', async () => {
+    deliveryRows[0].status = 'out_for_delivery'
+    orderRows[0].status = 'delivered'
+    render(<DriverDeliveries />)
+
+    await screen.findByRole('heading', { name: 'Order #ORD-21' })
+    const input = await screen.findByLabelText(
+      'How many empty containers were returned?',
+    )
+    fireEvent.change(input, { target: { value: '0' } })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save returned containers' }),
+    )
+
+    expect(
+      await screen.findByText('0 empty containers returned.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('How many empty containers were returned?'),
+    ).not.toBeInTheDocument()
+    expect(rpc).toHaveBeenCalledWith('record_returned_containers', {
+      target_delivery_id: 8,
+      returned_quantity: 0,
+    })
+  })
+
+  it('treats an existing zero return value as already recorded', async () => {
+    deliveryRows[0].status = 'out_for_delivery'
+    orderRows[0].status = 'delivered'
+    rpc.mockImplementation((name: string) =>
+      name === 'get_returned_containers'
+        ? Promise.resolve({ data: 0, error: null })
+        : Promise.resolve({ data: null, error: null }),
+    )
+    render(<DriverDeliveries />)
+
+    expect(
+      await screen.findByText('0 empty containers returned.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('How many empty containers were returned?'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('rejects invalid returned-container quantities', async () => {
+    deliveryRows[0].status = 'out_for_delivery'
+    orderRows[0].status = 'delivered'
+    render(<DriverDeliveries />)
+
+    await screen.findByRole('heading', { name: 'Order #ORD-21' })
+    fireEvent.change(
+      await screen.findByLabelText('How many empty containers were returned?'),
+      {
+        target: { value: '' },
+      },
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save returned containers' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Enter a whole number (0 or greater).',
+    )
+    expect(rpc).not.toHaveBeenCalledWith(
+      'record_returned_containers',
+      expect.anything(),
+    )
+  })
+
+  it('shows an error when recording returned containers fails', async () => {
+    rpc.mockImplementation((name: string) =>
+      name === 'record_returned_containers'
+        ? Promise.resolve({
+            data: null,
+            error: new Error('Delivery has already recorded returns'),
+          })
+        : Promise.resolve({ data: null, error: null }),
+    )
+    deliveryRows[0].status = 'out_for_delivery'
+    orderRows[0].status = 'delivered'
+    render(<DriverDeliveries />)
+
+    await screen.findByRole('heading', { name: 'Order #ORD-21' })
+    fireEvent.change(
+      await screen.findByLabelText('How many empty containers were returned?'),
+      {
+        target: { value: '2' },
+      },
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save returned containers' }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Delivery has already recorded returns',
+    )
+  })
+
+  it('shows returned containers and hides the requested window after delivery', async () => {
+    deliveryRows[0].status = 'out_for_delivery'
+    render(<DriverDeliveries />)
+
+    expect(
+      await screen.findByText('Requested Delivery Window', { selector: 'dt' }),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Mark delivered' }))
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Requested Delivery Window', { selector: 'dt' }),
+      ).not.toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Directions' })).not.toBeInTheDocument()
+      expect(
+        screen.getByLabelText('How many empty containers were returned?'),
+      ).toBeInTheDocument()
+    })
   })
 })
