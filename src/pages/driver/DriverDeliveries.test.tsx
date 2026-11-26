@@ -301,14 +301,34 @@ describe('Driver deliveries', () => {
       screen.getByRole('button', { name: 'Save returned containers' }),
     )
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Returned containers recorded.',
-    )
+    expect(
+      await screen.findByText('0 empty containers returned.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('How many empty containers were returned?'),
+    ).not.toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('record_returned_containers', {
       target_delivery_id: 8,
       returned_quantity: 0,
     })
-    expect(input).toHaveValue(null)
+  })
+
+  it('treats an existing zero return value as already recorded', async () => {
+    deliveryRows[0].status = 'out_for_delivery'
+    orderRows[0].status = 'delivered'
+    rpc.mockImplementation((name: string) =>
+      name === 'get_returned_containers'
+        ? Promise.resolve({ data: 0, error: null })
+        : Promise.resolve({ data: null, error: null }),
+    )
+    render(<DriverDeliveries />)
+
+    expect(
+      await screen.findByText('0 empty containers returned.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('How many empty containers were returned?'),
+    ).not.toBeInTheDocument()
   })
 
   it('rejects invalid returned-container quantities', async () => {
@@ -330,21 +350,28 @@ describe('Driver deliveries', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Enter a whole number (0 or greater).',
     )
-    expect(rpc).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalledWith(
+      'record_returned_containers',
+      expect.anything(),
+    )
   })
 
   it('shows an error when recording returned containers fails', async () => {
-    rpc.mockResolvedValueOnce({
-      data: null,
-      error: new Error('Delivery has already recorded returns'),
-    })
+    rpc.mockImplementation((name: string) =>
+      name === 'record_returned_containers'
+        ? Promise.resolve({
+            data: null,
+            error: new Error('Delivery has already recorded returns'),
+          })
+        : Promise.resolve({ data: null, error: null }),
+    )
     deliveryRows[0].status = 'out_for_delivery'
     orderRows[0].status = 'delivered'
     render(<DriverDeliveries />)
 
     await screen.findByRole('heading', { name: 'Order #ORD-21' })
     fireEvent.change(
-      screen.getByLabelText('How many empty containers were returned?'),
+      await screen.findByLabelText('How many empty containers were returned?'),
       {
         target: { value: '2' },
       },

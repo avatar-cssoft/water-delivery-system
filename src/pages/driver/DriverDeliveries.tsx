@@ -389,8 +389,39 @@ export default function DriverDeliveries() {
 
 function ReturnedContainersForm({ deliveryId }: { deliveryId: number }) {
   const [quantity, setQuantity] = useState('')
+  const [recordedQuantity, setRecordedQuantity] = useState<number | null>(null)
+  const [checkingExisting, setCheckingExisting] = useState(true)
+  const [lookupError, setLookupError] = useState(false)
   const [state, setState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadExistingReturn() {
+      const { data, error } = await supabase.rpc('get_returned_containers', {
+        target_delivery_id: deliveryId,
+      })
+
+      if (cancelled) return
+
+      setCheckingExisting(false)
+      if (error) {
+        setLookupError(true)
+        setState('error')
+        return
+      }
+
+      if (data !== null && data !== undefined) {
+        setRecordedQuantity(Number(data))
+      }
+    }
+
+    void loadExistingReturn()
+    return () => {
+      cancelled = true
+    }
+  }, [deliveryId])
 
   async function recordReturnedContainers() {
     const parsedQuantity = Number(quantity)
@@ -416,8 +447,34 @@ function ReturnedContainersForm({ deliveryId }: { deliveryId: number }) {
     }
 
     setState('success')
-    setMessage('Returned containers recorded.')
-    setQuantity('')
+    setRecordedQuantity(parsedQuantity)
+  }
+
+  if (recordedQuantity !== null) {
+    return (
+      <div className="delivery-panel" style={styles.returnedContainersRecorded}>
+        <strong>{recordedQuantity} empty containers returned.</strong>
+      </div>
+    )
+  }
+
+  if (checkingExisting) {
+    return (
+      <div className="delivery-panel" style={styles.returnedContainersRecorded}>
+        <span role="status">Checking returned containers...</span>
+      </div>
+    )
+  }
+
+  if (lookupError) {
+    return (
+      <div className="delivery-panel" style={styles.returnedContainersError}>
+        <p role="alert">
+          Returned containers could not be verified. Apply the latest database
+          migration before recording a new value.
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -463,7 +520,7 @@ function ReturnedContainersForm({ deliveryId }: { deliveryId: number }) {
           aria-describedby={`returned-containers-message-${deliveryId}`}
         />
         <span style={styles.returnedContainersUnit}>containers</span>
-        <button type="submit" disabled={state === 'saving'}>
+        <button type="submit" disabled={state === 'saving' || checkingExisting}>
           {state === 'saving' ? 'Saving...' : 'Save returned containers'}
         </button>
       </div>
@@ -675,6 +732,18 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--accent)',
     borderRadius: '10px',
     padding: '16px',
+  },
+  returnedContainersRecorded: {
+    color: 'var(--text)',
+    border: '1px solid var(--border)',
+    borderRadius: '10px',
+    padding: '16px',
+  },
+  returnedContainersError: {
+    border: '1px solid var(--danger)',
+    borderRadius: '10px',
+    padding: '16px',
+    color: 'var(--danger)',
   },
   returnedContainersLabel: {
     display: 'block',
