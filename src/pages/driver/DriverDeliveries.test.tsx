@@ -293,7 +293,7 @@ describe('Driver deliveries', () => {
     render(<DriverDeliveries />)
 
     await screen.findByRole('heading', { name: 'Order #ORD-21' })
-    const input = screen.getByLabelText(
+    const input = await screen.findByLabelText(
       'How many empty containers were returned?',
     )
     fireEvent.change(input, { target: { value: '0' } })
@@ -338,7 +338,7 @@ describe('Driver deliveries', () => {
 
     await screen.findByRole('heading', { name: 'Order #ORD-21' })
     fireEvent.change(
-      screen.getByLabelText('How many empty containers were returned?'),
+      await screen.findByLabelText('How many empty containers were returned?'),
       {
         target: { value: '' },
       },
