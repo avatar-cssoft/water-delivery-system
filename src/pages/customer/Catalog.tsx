@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   getProducts,
   subscribeToProducts,
@@ -11,6 +12,7 @@ import { addToCart, getCart } from '../../lib/cart'
 import { appPath } from '../../lib/navigation'
 
 export default function Catalog() {
+  const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,7 +72,7 @@ export default function Catalog() {
 
   function handleAddToCart(product: Product) {
     addToCart(product)
-    window.location.href = appPath('/cart')
+    navigate('/cart')
   }
 
   return (
