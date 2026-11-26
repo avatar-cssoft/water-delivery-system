@@ -3,8 +3,11 @@ import { NavLink } from 'react-router-dom'
 import gallonImage from '../../assets/images/products/Gallon.png'
 import { getCart } from '../../lib/cart'
 import { formatPrice } from '../../lib/api/products'
+import { useNavRole } from '../../components/useNavRole'
 
 export default function CustomerHome() {
+  const { role } = useNavRole()
+  const canShop = role === 'customer'
   const cart = getCart()
 
   const totalItems = cart.reduce(
@@ -25,47 +28,59 @@ export default function CustomerHome() {
       <p>Welcome! What would you like to do today?</p>
 
       <nav className="customer-home-grid" aria-label="Customer shortcuts">
-        <NavLink className="customer-home-tile customer-home-tile--account" to="/orders">
-          <span className="customer-home-tile-content">
-            <strong>My orders</strong>
-            <span>Track a delivery</span>
-          </span>
-          <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
-        </NavLink>
-        <NavLink
-          className="customer-home-tile customer-home-tile--browse"
-          to="/catalog"
-        >
-          <span className="customer-home-tile-content">
-            <strong>Browse Products</strong>
-            <span>Explore available water products.</span>
-          </span>
-          <img
-            className="customer-home-product-image"
-            src={gallonImage}
-            alt=""
-          />
-          <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
-        </NavLink>
-
-        <NavLink className="customer-home-tile customer-home-tile--cart" to="/cart">
-          <span className="customer-home-tile-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 1.9-1.5L21 8H6" />
-              <circle cx="10" cy="19" r="1" />
-              <circle cx="18" cy="19" r="1" />
-            </svg>
-          </span>
-          <span className="customer-home-tile-content">
-            <strong>My Cart</strong>
-            <span>
-              {totalItems === 0
-                ? 'Your cart is empty.'
-                : `${totalItems} ${totalItems === 1 ? 'item' : 'items'} · ${formatPrice(totalPrice)}`}
+        {role === 'customer' && (
+          <NavLink
+            className="customer-home-tile customer-home-tile--account"
+            to="/orders"
+          >
+            <span className="customer-home-tile-content">
+              <strong>My orders</strong>
+              <span>Track a delivery</span>
             </span>
-          </span>
-          <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
-        </NavLink>
+            <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
+          </NavLink>
+        )}
+        {canShop && (
+          <NavLink
+            className="customer-home-tile customer-home-tile--browse"
+            to="/catalog"
+          >
+            <span className="customer-home-tile-content">
+              <strong>Browse Products</strong>
+              <span>Explore available water products.</span>
+            </span>
+            <img
+              className="customer-home-product-image"
+              src={gallonImage}
+              alt=""
+            />
+            <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
+          </NavLink>
+        )}
+
+        {role === 'customer' && (
+          <NavLink
+            className="customer-home-tile customer-home-tile--cart"
+            to="/cart"
+          >
+            <span className="customer-home-tile-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 1.9-1.5L21 8H6" />
+                <circle cx="10" cy="19" r="1" />
+                <circle cx="18" cy="19" r="1" />
+              </svg>
+            </span>
+            <span className="customer-home-tile-content">
+              <strong>My Cart</strong>
+              <span>
+                {totalItems === 0
+                  ? 'Your cart is empty.'
+                  : `${totalItems} ${totalItems === 1 ? 'item' : 'items'} · ${formatPrice(totalPrice)}`}
+              </span>
+            </span>
+            <span className="customer-home-tile-arrow" aria-hidden="true">›</span>
+          </NavLink>
+        )}
 
         <NavLink
           className="customer-home-tile customer-home-tile--account"

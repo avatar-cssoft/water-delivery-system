@@ -36,61 +36,85 @@ export default function Cart() {
   )
 
   return (
-    <main>
+    <main className="cart-page">
       <h1>My Cart</h1>
 
       {items.length === 0 ? (
-        <p>Your cart is empty.</p>
+        <p className="cart-empty">Your cart is empty.</p>
       ) : (
         <>
-          {items.map((item) => (
-            <article key={item.product.id}>
-              <h2>{item.product.name}</h2>
-              <p>Price: {formatPrice(item.product.price)}</p>
+          <div className="cart-items">
+            {items.map((item) => (
+              <article className="cart-item" key={item.product.id}>
+                <div className="cart-item-info">
+                  <h2>{item.product.name}</h2>
+                  <p>Size: {item.product.containerSize}</p>
+                  <p>Price: {formatPrice(item.product.price)}</p>
+                </div>
 
-              <label>
-                Quantity:{' '}
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={item.quantity}
-                  onChange={(event) =>
-                    updateQuantity(
-                      item.product.id,
-                      Number(event.target.value),
-                    )
-                  }
-                />
-              </label>
+                <label className="cart-quantity">
+                  Quantity
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={item.quantity}
+                    onChange={(event) =>
+                      updateQuantity(
+                        item.product.id,
+                        Number(event.target.value),
+                      )
+                    }
+                  />
+                </label>
 
+                <button
+                  className="cart-remove"
+                  type="button"
+                  onClick={() => handleRemove(item.product.id)}
+                >
+                  Remove
+                </button>
+              </article>
+            ))}
+          </div>
+
+          <section className="cart-summary" aria-label="Cart summary">
+            <h2>Total: {formatPrice(total)}</h2>
+            <div className="cart-actions">
               <button
-                onClick={() => handleRemove(item.product.id)}
+                type="button"
+                onClick={() => {
+                  window.location.href = appPath('/checkout')
+                }}
               >
-                Remove
+                Proceed to Checkout
               </button>
-            </article>
-          ))}
-
-          <h2>Total: {formatPrice(total)}</h2>
-
-          <button
-            onClick={() => {
-              window.location.href = appPath('/checkout')
-            }}
-          >
-            Proceed to Checkout
-          </button>
+              <button
+                className="cart-continue"
+                type="button"
+                onClick={() => {
+                  window.location.href = appPath('/catalog')
+                }}
+              >
+                Continue Shopping
+              </button>
+            </div>
+          </section>
         </>
       )}
 
-      <button
-        onClick={() => {
-          window.location.href = appPath('/catalog')
-        }}
-      >
-        Continue Shopping
-      </button>
+      {items.length === 0 && (
+        <button
+          className="cart-continue"
+          type="button"
+          onClick={() => {
+            window.location.href = appPath('/catalog')
+          }}
+        >
+          Continue Shopping
+        </button>
+      )}
     </main>
   )
 }

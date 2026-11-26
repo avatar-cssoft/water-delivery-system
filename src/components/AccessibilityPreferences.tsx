@@ -29,7 +29,7 @@ export function AccessibilityPreferencesProvider({
   children: ReactNode
 }) {
   const [theme, setTheme] = useState<Theme>(() =>
-    readPreference(THEME_KEY, ['dark', 'light'], 'dark'),
+    readPreference(THEME_KEY, ['dark', 'light'], 'light'),
   )
   const [textSize, setTextSize] = useState<TextSize>(() =>
     readPreference(
@@ -58,7 +58,7 @@ export function AccessibilityPreferencesProvider({
     setTheme,
     setTextSize,
     resetPreferences: () => {
-      setTheme('dark')
+      setTheme('light')
       setTextSize('standard')
     },
   }

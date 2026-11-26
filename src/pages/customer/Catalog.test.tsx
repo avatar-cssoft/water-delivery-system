@@ -1,4 +1,5 @@
 import { act, render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Product, ProductChange } from '../../lib/api/products'
 import Catalog from './Catalog'
@@ -73,6 +74,14 @@ function cardFor(name: string) {
   return within(card)
 }
 
+function renderCatalog() {
+  return render(
+    <MemoryRouter>
+      <Catalog />
+    </MemoryRouter>,
+  )
+}
+
 describe('Catalog', () => {
   beforeEach(() => {
     getProducts.mockReset()
@@ -84,7 +93,7 @@ describe('Catalog', () => {
   it('shows each product with its name, price, and stock', async () => {
     getProducts.mockResolvedValue(products)
 
-    render(<Catalog />)
+    renderCatalog()
 
     expect(
       await screen.findByRole('heading', {
@@ -119,7 +128,7 @@ describe('Catalog', () => {
   it('shows one card per product', async () => {
     getProducts.mockResolvedValue(products)
 
-    render(<Catalog />)
+    renderCatalog()
 
     await screen.findByRole('heading', {
       name: 'Round gallon refill',
@@ -131,7 +140,7 @@ describe('Catalog', () => {
   it('shows a loading message while products load', () => {
     getProducts.mockReturnValue(new Promise(() => {}))
 
-    render(<Catalog />)
+    renderCatalog()
 
     expect(
       screen.getByText('Loading products...'),
@@ -141,7 +150,7 @@ describe('Catalog', () => {
   it('shows a message when there are no products', async () => {
     getProducts.mockResolvedValue([])
 
-    render(<Catalog />)
+    renderCatalog()
 
     expect(
       await screen.findByText('No products available yet.'),
@@ -153,7 +162,7 @@ describe('Catalog', () => {
   it('shows an error when products fail to load', async () => {
     getProducts.mockRejectedValue(new Error('permission denied'))
 
-    render(<Catalog />)
+    renderCatalog()
 
     expect(
       await screen.findByRole('alert'),
@@ -174,7 +183,7 @@ describe('Catalog live updates', () => {
   it('shows a product added elsewhere without a refresh', async () => {
     getProducts.mockResolvedValue([])
 
-    render(<Catalog />)
+    renderCatalog()
 
     await screen.findByText('No products available yet.')
 
@@ -202,7 +211,7 @@ describe('Catalog live updates', () => {
   it('updates price and stock when a product is edited', async () => {
     getProducts.mockResolvedValue(products)
 
-    render(<Catalog />)
+    renderCatalog()
 
     await screen.findByRole('heading', {
       name: 'Round gallon refill',
@@ -235,7 +244,7 @@ describe('Catalog live updates', () => {
   it('removes a deleted product', async () => {
     getProducts.mockResolvedValue(products)
 
-    render(<Catalog />)
+    renderCatalog()
 
     await screen.findByRole('heading', {
       name: 'Round gallon refill',
@@ -266,7 +275,7 @@ describe('Catalog live updates', () => {
       }),
     )
 
-    render(<Catalog />)
+    renderCatalog()
 
     act(() => {
       pushChange({
@@ -297,7 +306,7 @@ describe('Catalog live updates', () => {
   it('stops listening when the page is closed', async () => {
     getProducts.mockResolvedValue(products)
 
-    const { unmount } = render(<Catalog />)
+    const { unmount } = renderCatalog()
 
     await screen.findByRole('heading', {
       name: 'Round gallon refill',

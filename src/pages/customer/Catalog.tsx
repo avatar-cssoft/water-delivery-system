@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   getProducts,
   subscribeToProducts,
@@ -7,13 +8,15 @@ import {
   type Product,
   type ProductChange,
 } from '../../lib/api/products'
-import { addToCart } from '../../lib/cart'
-import { navigateTo } from '../../lib/navigation'
+import { addToCart, getCart } from '../../lib/cart'
+import { appPath } from '../../lib/navigation'
 
 export default function Catalog() {
+  const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const cartCount = getCart().reduce((total, item) => total + item.quantity, 0)
 
   useEffect(() => {
     let active = true
@@ -67,32 +70,30 @@ export default function Catalog() {
     }
   }, [])
 
-  function goToCustomerHome() {
-    navigateTo('/customerHome')
-  }
-
-  function goToCart() {
-    navigateTo('/cart')
-  }
-
   function handleAddToCart(product: Product) {
     addToCart(product)
-    navigateTo('/cart')
+    navigate('/cart')
   }
 
   return (
     <main>
-      <h1>Shop Water Products</h1>
-
-      <nav>
-        <button type="button" onClick={goToCustomerHome}>
-          Back to Customer Home
-        </button>
-
-        <button type="button" onClick={goToCart}>
-          View Cart
-        </button>
-      </nav>
+      <div className="catalog-header">
+        <h1>Shop Water Products</h1>
+        <a
+          className="catalog-cart-link"
+          href={appPath('/cart')}
+          aria-label={`Cart, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 1.9-1.5L21 8H6" />
+            <circle cx="10" cy="19" r="1" />
+            <circle cx="18" cy="19" r="1" />
+          </svg>
+          <span className="catalog-cart-count" aria-hidden="true">
+            {cartCount}
+          </span>
+        </a>
+      </div>
 
       {loading ? (
         <p>Loading products...</p>

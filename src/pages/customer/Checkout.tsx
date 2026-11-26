@@ -39,6 +39,7 @@ export default function Checkout() {
   const [addresses, setAddresses] = useState<Address[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState('')
   const [address, setAddress] = useState('')
+  const [recipientName, setRecipientName] = useState('')
   const [addressLoading, setAddressLoading] = useState(true)
   const [point, setPoint] = useState<Point | null>(null)
   const [instructions, setInstructions] = useState('')
@@ -131,13 +132,14 @@ export default function Checkout() {
 
         if (defaultAddress) {
           setSelectedAddressId(defaultAddress.id)
+          setRecipientName(defaultAddress.recipient_name)
           setPoint(deliveryPoint(defaultAddress))
           setInstructions(defaultAddress.delivery_instructions ?? '')
           setAddress(formatAddress(defaultAddress))
         } else {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('address')
+            .select('address, first_name, last_name')
             .eq('id', user.id)
             .single()
 
@@ -149,8 +151,17 @@ export default function Checkout() {
             )
           }
 
-          const savedProfileAddress =
-            (profile as { address: string | null } | null)?.address
+          const profileData = profile as {
+            address: string | null
+            first_name: string | null
+            last_name: string | null
+          } | null
+          const savedProfileAddress = profileData?.address
+          setRecipientName(
+            [profileData?.first_name, profileData?.last_name]
+              .filter(Boolean)
+              .join(' '),
+          )
 
           if (!savedProfileAddress?.trim()) {
             setError(
@@ -195,6 +206,7 @@ export default function Checkout() {
     }
 
     setSelectedAddressId(id)
+    setRecipientName(selectedAddress.recipient_name)
     setError('')
     setPoint(deliveryPoint(selectedAddress))
     setInstructions(selectedAddress.delivery_instructions ?? '')
@@ -283,6 +295,7 @@ export default function Checkout() {
         .from('orders')
         .insert({
           user_id: user.id,
+          recipient_name: recipientName.trim() || null,
           delivery_address: address.trim(),
           ...(point ? { delivery_latitude: point.latitude, delivery_longitude: point.longitude } : {}),
           ...(instructions.trim() ? { delivery_instructions: instructions.trim() } : {}),
@@ -481,10 +494,10 @@ export default function Checkout() {
         <p>Your cart is empty. Please add products first.</p>
       ) : (
         <>
-          <h2>Order Summary</h2>
+          <h2 className="checkout-order-summary-title">Order Summary</h2>
 
           {cart.map(item => (
-            <div key={item.product.id}>
+            <div className="checkout-summary-item" key={item.product.id}>
               <p>
                 {item.product.name} × {item.quantity}
               </p>
@@ -495,7 +508,7 @@ export default function Checkout() {
             </div>
           ))}
 
-          <h3>Total: {formatPrice(total)}</h3>
+          <h3 className="checkout-summary-total">Total: {formatPrice(total)}</h3>
 
           <section className="checkout-delivery-section">
             <div className="checkout-delivery-header">
@@ -524,8 +537,6 @@ export default function Checkout() {
                     <option key={savedAddress.id} value={savedAddress.id}>
                       {savedAddress.label || 'Other'}
                       {savedAddress.is_default ? ' (Default)' : ''}
-                      {' - '}
-                      {formatAddress(savedAddress)}
                     </option>
                   ))}
                 </select>
@@ -534,17 +545,20 @@ export default function Checkout() {
 
             {addressLoading && <p>Loading saved addresses...</p>}
 
-            <input
-              className="checkout-delivery-address"
-              id="delivery-address"
-              type="text"
-              value={address}
-              readOnly
-              aria-readonly="true"
-              aria-label="Delivery Address"
-              placeholder="Loading saved delivery address..."
-              required
-            />
+            <div className="checkout-selected-address">
+              <label htmlFor="delivery-address">Selected delivery address</label>
+              <input
+                className="checkout-delivery-address"
+                id="delivery-address"
+                type="text"
+                value={address}
+                readOnly
+                aria-readonly="true"
+                aria-label="Delivery Address"
+                placeholder="Loading saved delivery address..."
+                required
+              />
+            </div>
 
             <div className="checkout-delivery-instructions">
               <label htmlFor="checkout-delivery-instructions">

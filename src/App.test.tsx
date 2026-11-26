@@ -22,6 +22,7 @@ const { getUser, getProfile } = vi.hoisted(() => ({
 
 vi.mock('./lib/api/auth', () => ({
   getCurrentUserProfile: () => getCurrentUserProfile(),
+  getCurrentUserRole: () => Promise.resolve('employee'),
 }))
 
 vi.mock('./lib/api/products', async (importOriginal) => {
@@ -105,7 +106,9 @@ beforeEach(() => {
 async function navLinks() {
   const nav = mainNav()
   await within(nav).findByRole('link', { name: /Log in|My Account/ })
-  return within(nav)
+  const primaryNav = nav.querySelector<HTMLElement>('.nav-links')
+  if (!primaryNav) throw new Error('Primary navigation was not rendered.')
+  return within(primaryNav)
     .getAllByRole('link')
     .map((link) => link.textContent)
 }
@@ -120,8 +123,8 @@ describe('App routes (signed-out guest)', () => {
       }),
     ).toBeInTheDocument()
     expect(
-      within(mainNav()).getByRole('link', { name: 'Products' }),
-    ).toHaveAttribute('href', '/catalog')
+      within(mainNav()).queryByRole('link', { name: 'Products' }),
+    ).not.toBeInTheDocument()
     expect(
       screen.queryByRole('heading', { name: 'Login' }),
     ).not.toBeInTheDocument()
@@ -133,8 +136,6 @@ describe('App routes (signed-out guest)', () => {
     ['/settings', 'Settings'],
     ['/accessibility', 'Accessibility'],
     ['/customerHome', 'Customer Home'],
-    ['/cart', 'My Cart'],
-    ['/checkout', 'Checkout'],
     ['/admin/products', 'Products'],
   ])('shows %s inside the layout', (path, heading) => {
     renderAt(path)
@@ -143,7 +144,18 @@ describe('App routes (signed-out guest)', () => {
     expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
   })
 
-  it('shows customer shortcuts as full-card links', () => {
+  it.each(['/cart', '/checkout'])(
+    'redirects a guest away from %s to sign in', async (path) => {
+      renderAt(path)
+      expect(
+        await screen.findByRole('heading', { name: 'Login' }),
+      ).toBeInTheDocument()
+      expect(window.location.pathname).toBe('/login')
+    },
+  )
+
+  it('shows customer shortcuts as full-card links', async () => {
+    setProfile('customer')
     renderAt('/customerHome')
 
     const shortcuts = screen.getByRole('navigation', {
@@ -151,10 +163,10 @@ describe('App routes (signed-out guest)', () => {
     })
 
     expect(
-      within(shortcuts).getByRole('link', { name: /Browse Products/ }),
+      await within(shortcuts).findByRole('link', { name: /Browse Products/ }),
     ).toHaveAttribute('href', '/catalog')
     expect(
-      within(shortcuts).getByRole('link', { name: /My Cart/ }),
+      await within(shortcuts).findByRole('link', { name: /My Cart/ }),
     ).toHaveAttribute('href', '/cart')
     expect(
       within(shortcuts).getByRole('link', { name: /My Account/ }),
@@ -165,13 +177,13 @@ describe('App routes (signed-out guest)', () => {
   })
 
   it('shows footer navigation and copyright', () => {
-    renderAt('/employee/orders')
+    renderAt('/')
     expect(
       within(footerNav()).getByRole('link', { name: 'Home' }),
     ).toHaveAttribute('href', '/')
     expect(
-      within(footerNav()).getByRole('link', { name: 'Products' }),
-    ).toHaveAttribute('href', '/catalog')
+      within(footerNav()).queryByRole('link', { name: 'Products' }),
+    ).not.toBeInTheDocument()
     expect(
       screen.getByText(`© ${new Date().getFullYear()} Water Delivery`),
     ).toBeInTheDocument()
@@ -274,8 +286,8 @@ describe('App routes (signed-out guest)', () => {
       await screen.findByRole('button', { name: '+ Add Address' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: /Back to My Account/ }),
-    ).toHaveAttribute('href', '/account')
+      screen.getByRole('link', { name: /Back to Settings/ }),
+    ).toHaveAttribute('href', '/settings')
   })
 
   it.each([
@@ -341,7 +353,8 @@ describe('App routes (signed-out guest)', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows the product catalog at /catalog without logging in', async () => {
+  it('shows the product catalog at /catalog to a customer', async () => {
+    setProfile('customer')
     renderAt('/catalog')
     expect(
       await screen.findByText('Round gallon refill'),
@@ -372,37 +385,30 @@ describe('App routes (signed-out guest)', () => {
 })
 
 describe('Nav links by role', () => {
-  it('shows a guest only public pages, Cart, Log in and Register', async () => {
+  it('shows guests only public navigation pages', async () => {
     renderAt('/')
-    expect(await navLinks()).toEqual([
-      'Home',
-      'Products',
-      'Cart',
-      'Settings',
-      'Log in',
-      'Register',
-    ])
+    expect(await navLinks()).toEqual(['Home', 'Settings'])
+    expect(within(mainNav()).getByRole('link', { name: 'Log in' }))
+      .toBeInTheDocument()
+    expect(within(mainNav()).getByRole('link', { name: 'Register' }))
+      .toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Logout' }),
     ).not.toBeInTheDocument()
   })
 
   it.each([
-    ['user', ['Cart', 'My orders']],
-    ['customer', ['Cart', 'My orders']],
-    ['employee', []],
-    ['rider', []],
-    ['admin', ['Admin']],
-  ])('shows a signed-in %s their pages, My Account and Logout', async (role, pages) => {
+    ['user', ['Home', 'Products', 'Cart', 'My orders', 'Settings']],
+    ['customer', ['Home', 'Products', 'Cart', 'My orders', 'Settings']],
+    ['employee', ['Home', 'Settings']],
+    ['rider', ['Home', 'Settings']],
+    ['admin', ['Home', 'Settings']],
+  ])('shows the correct navigation for signed-in %s users', async (role, expectedLinks) => {
     setProfile(role)
     renderAt('/')
-    expect(await navLinks()).toEqual([
-      'Home',
-      'Products',
-      ...pages,
-      'My Account',
-      'Settings',
-    ])
+    expect(await navLinks()).toEqual(expectedLinks)
+    expect(within(mainNav()).getByRole('link', { name: 'My Account' }))
+      .toBeInTheDocument()
     expect(
       screen.getByRole('button', { name: 'Logout' }),
     ).toBeInTheDocument()
@@ -413,7 +419,7 @@ describe('Nav links by role', () => {
     ['customer', '/customerHome'],
     ['employee', '/employee'],
     ['rider', '/employee'],
-    ['admin', '/'],
+    ['admin', '/admin'],
     [null, '/'],
   ])('points Home at the right page for a %s', async (role, path) => {
     setProfile(role)
@@ -436,14 +442,7 @@ describe('Nav links by role', () => {
 
   it('switches to the signed-in links after signing in without a reload', async () => {
     renderAt('/register')
-    expect(await navLinks()).toEqual([
-      'Home',
-      'Products',
-      'Cart',
-      'Settings',
-      'Log in',
-      'Register',
-    ])
+    expect(await navLinks()).toEqual(['Home', 'Settings'])
 
     setProfile('user')
     act(() => authChange('SIGNED_IN'))
@@ -452,25 +451,14 @@ describe('Nav links by role', () => {
       await within(mainNav()).findByRole('link', { name: 'My Account' }),
     ).toBeInTheDocument()
     expect(await navLinks()).toEqual([
-      'Home',
-      'Products',
-      'Cart',
-      'My orders',
-      'My Account',
-      'Settings',
+      'Home', 'Products', 'Cart', 'My orders', 'Settings',
     ])
   })
 
   it('switches back to the guest links after signing out elsewhere', async () => {
     setProfile('admin')
     renderAt('/')
-    expect(await navLinks()).toEqual([
-      'Home',
-      'Products',
-      'Admin',
-      'My Account',
-      'Settings',
-    ])
+    expect(await navLinks()).toEqual(['Home', 'Settings'])
 
     setProfile(null)
     act(() => authChange('SIGNED_OUT'))
@@ -478,25 +466,13 @@ describe('Nav links by role', () => {
     expect(
       await within(mainNav()).findByRole('link', { name: 'Log in' }),
     ).toBeInTheDocument()
-    expect(await navLinks()).toEqual([
-      'Home',
-      'Products',
-      'Cart',
-      'Settings',
-      'Log in',
-      'Register',
-    ])
+    expect(await navLinks()).toEqual(['Home', 'Settings'])
   })
 
   it('shows only My Account and Logout when the role can not be loaded', async () => {
     getCurrentUserProfile.mockRejectedValue(new Error('network down'))
     renderAt('/')
-    expect(await navLinks()).toEqual([
-      'Home',
-      'Products',
-      'My Account',
-      'Settings',
-    ])
+    expect(await navLinks()).toEqual(['Home', 'Settings'])
     expect(
       screen.getByRole('button', { name: 'Logout' }),
     ).toBeInTheDocument()
