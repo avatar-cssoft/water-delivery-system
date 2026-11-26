@@ -326,44 +326,51 @@ export default function DriverDeliveries() {
                       )}
                     </dd>
                   </div>
-                  <div style={styles.requestedWindowItem}>
-                    <dt>Requested Delivery Window</dt>
-                    <dd style={styles.requestedWindow}>
-                      {order?.requested_delivery_window_start ||
-                      order?.requested_delivery_window_end ? (
-                        <div style={styles.windowTimes}>
-                          <div>
-                            <span style={styles.windowLabel}>From</span>
-                            {formatRequestedWindow(
-                              order.requested_delivery_window_start,
-                            ) ?? 'Not set'}
+                  {order?.status.toLowerCase() !== 'delivered' && (
+                    <div style={styles.requestedWindowItem}>
+                      <dt>Requested Delivery Window</dt>
+                      <dd style={styles.requestedWindow}>
+                        {order?.requested_delivery_window_start ||
+                        order?.requested_delivery_window_end ? (
+                          <div style={styles.windowTimes}>
+                            <div>
+                              <span style={styles.windowLabel}>From</span>
+                              {formatRequestedWindow(
+                                order.requested_delivery_window_start,
+                              ) ?? 'Not set'}
+                            </div>
+                            <div>
+                              <span style={styles.windowLabel}>To</span>
+                              {formatRequestedWindow(
+                                order.requested_delivery_window_end,
+                              ) ?? 'Not set'}
+                            </div>
                           </div>
-                          <div>
-                            <span style={styles.windowLabel}>To</span>
-                            {formatRequestedWindow(
-                              order.requested_delivery_window_end,
-                            ) ?? 'Not set'}
+                        ) : (
+                          <div style={styles.windowWip}>
+                            <span style={styles.wipBadge}>WIP</span>
+                            <span>
+                              Requested delivery times will appear here when
+                              scheduling is available.
+                            </span>
                           </div>
-                        </div>
-                      ) : (
-                        <div style={styles.windowWip}>
-                          <span style={styles.wipBadge}>WIP</span>
-                          <span>
-                            Requested delivery times will appear here when
-                            scheduling is available.
-                          </span>
-                        </div>
-                      )}
-                    </dd>
-                  </div>
+                        )}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
                 {order && <div className="delivery-panel">
                   {order.delivery_instructions && <p>{order.delivery_instructions}</p>}
                   {deliveryPoint(order) && <details><summary>Preview drop-off map</summary>
                     <DeliveryMap markers={[{ ...deliveryPoint(order)!, label: 'Drop-off' }]} />
                   </details>}
-                  <a href={directionsUrl(order.delivery_address, deliveryPoint(order))} target="_blank" rel="noreferrer">Directions</a>
+                  {order.status.toLowerCase() !== 'delivered' && (
+                    <a href={directionsUrl(order.delivery_address, deliveryPoint(order))} target="_blank" rel="noreferrer">Directions</a>
+                  )}
                 </div>}
+                {order && order.status.toLowerCase() === 'delivered' && (
+                  <ReturnedContainersForm deliveryId={delivery.id} />
+                )}
                 {!['delivered', 'cancelled', 'canceled'].includes(order?.status ?? '') && <RiderTracking
                   id={delivery.id} status={delivery.status} onStatus={status => {
                     setAssignedOrders(current => current.map(item => item.delivery.id === delivery.id ? {
@@ -377,6 +384,97 @@ export default function DriverDeliveries() {
         )}
       </section>
     </>
+  )
+}
+
+function ReturnedContainersForm({ deliveryId }: { deliveryId: number }) {
+  const [quantity, setQuantity] = useState('')
+  const [state, setState] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const [message, setMessage] = useState('')
+
+  async function recordReturnedContainers() {
+    const parsedQuantity = Number(quantity)
+
+    if (!quantity.trim() || !Number.isInteger(parsedQuantity) || parsedQuantity < 0) {
+      setState('error')
+      setMessage('Enter a whole number (0 or greater).')
+      return
+    }
+
+    setState('saving')
+    setMessage('')
+
+    const { error } = await supabase.rpc('record_returned_containers', {
+      returned_quantity: parsedQuantity,
+      target_delivery_id: deliveryId,
+    })
+
+    if (error) {
+      setState('error')
+      setMessage(error.message)
+      return
+    }
+
+    setState('success')
+    setMessage('Returned containers recorded.')
+    setQuantity('')
+  }
+
+  return (
+    <form
+      className="delivery-panel"
+      style={styles.returnedContainersPanel}
+      onSubmit={(event) => {
+        event.preventDefault()
+        void recordReturnedContainers()
+      }}
+    >
+      <div style={styles.returnedContainersHeader}>
+        <div>
+          <label
+            htmlFor={`returned-containers-${deliveryId}`}
+            style={styles.returnedContainersLabel}
+          >
+            How many empty containers were returned?
+          </label>
+          <p style={styles.returnedContainersHint}>
+            Count the containers collected from this customer.
+          </p>
+        </div>
+      </div>
+      <div style={styles.returnedContainersControls}>
+        <input
+          id={`returned-containers-${deliveryId}`}
+          name="returnedContainers"
+          type="number"
+          min="0"
+          step="1"
+          inputMode="numeric"
+          placeholder="e.g. 2"
+          style={styles.returnedContainersInput}
+          value={quantity}
+          onChange={(event) => {
+            setQuantity(event.target.value)
+            if (state !== 'idle') {
+              setState('idle')
+              setMessage('')
+            }
+          }}
+          aria-describedby={`returned-containers-message-${deliveryId}`}
+        />
+        <span style={styles.returnedContainersUnit}>containers</span>
+        <button type="submit" disabled={state === 'saving'}>
+          {state === 'saving' ? 'Saving...' : 'Save returned containers'}
+        </button>
+      </div>
+      <p
+        id={`returned-containers-message-${deliveryId}`}
+        role={state === 'error' ? 'alert' : 'status'}
+        style={state === 'error' ? styles.error : styles.returnedContainersMessage}
+      >
+        {message}
+      </p>
+    </form>
   )
 }
 
@@ -565,5 +663,48 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--accent)',
     fontSize: '12px',
     fontWeight: 700,
+  },
+  returnedContainersHeader: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: '12px',
+    marginBottom: '8px',
+  },
+  returnedContainersPanel: {
+    border: '1px solid var(--accent)',
+    borderRadius: '10px',
+    padding: '16px',
+  },
+  returnedContainersLabel: {
+    display: 'block',
+    color: 'var(--text)',
+    fontWeight: 700,
+  },
+  returnedContainersHint: {
+    margin: '4px 0 0',
+    color: 'var(--muted)',
+    fontSize: '12px',
+  },
+  returnedContainersControls: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  returnedContainersUnit: {
+    color: 'var(--muted)',
+    fontSize: '14px',
+    whiteSpace: 'nowrap',
+  },
+  returnedContainersInput: {
+    width: '110px',
+    flex: '0 0 110px',
+  },
+  returnedContainersMessage: {
+    minHeight: '1.25em',
+    margin: '8px 0 0',
+    color: 'var(--muted)',
+    fontSize: '13px',
   },
 }
