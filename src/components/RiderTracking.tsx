@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 
-export default function RiderTracking({ id, status, onStatus }: {
+export default function RiderTracking({ id, status, onStatus, cancelButton }: {
   id: number
   status: string
   onStatus: (status: string) => void
+  cancelButton?: ReactNode
 }) {
   const active = ['in_progress', 'out_for_delivery'].includes(status)
   const [sharing, setSharing] = useState(false)
@@ -63,7 +64,10 @@ export default function RiderTracking({ id, status, onStatus }: {
   }
 
   return <div className="delivery-panel">
-    {status === 'assigned' && <button type="button" disabled={busy} onClick={() => void transition('out_for_delivery')}>Start delivery</button>}
+    {status === 'assigned' && <>
+      <button type="button" disabled={busy} onClick={() => void transition('out_for_delivery')}>Start delivery</button>
+      {cancelButton}
+    </>}
     {active && <>
       <button type="button" disabled={busy} onClick={() => {
         if (sharing) void stopSharing()
@@ -71,6 +75,7 @@ export default function RiderTracking({ id, status, onStatus }: {
         else setMessage('Device location is unavailable.')
       }}>{sharing ? 'Stop sharing location' : 'Share location for this delivery'}</button>
       <button type="button" disabled={busy} onClick={() => void transition('delivered')}>Mark delivered</button>
+      {cancelButton}
     </>}
     {message && <p role="status">{message}</p>}
   </div>

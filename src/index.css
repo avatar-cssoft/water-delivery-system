@@ -532,6 +532,20 @@ body {
   background: var(--accent-hover);
 }
 
+.main .driver-cancel-button {
+  border-color: #b8443b;
+  background: #b8443b;
+  color: #ffffff;
+  transition: background-color 140ms ease, border-color 140ms ease,
+    box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.main .driver-cancel-button:hover:not(:disabled) {
+  border-color: #e06b61;
+  background: #c95349;
+  box-shadow: 0 0 0 3px rgb(255 147 136 / 20%), 0 0 14px rgb(255 147 136 / 28%);
+}
+
 .main button:disabled {
   cursor: not-allowed;
   opacity: 0.55;

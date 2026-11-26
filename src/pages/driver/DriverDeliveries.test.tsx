@@ -404,4 +404,32 @@ describe('Driver deliveries', () => {
       ).toBeInTheDocument()
     })
   })
+
+  it('cancels a delivery with a reason and hides delivery-only controls', async () => {
+    render(<DriverDeliveries />)
+
+    await screen.findByRole('heading', { name: 'Order #ORD-21' })
+    expect(screen.getByText('Requested Delivery Window')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Directions' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    const reasonInput = await screen.findByLabelText(
+      'Why is this delivery being cancelled?',
+    )
+    expect(screen.queryByText('Requested Delivery Window')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Directions' })).not.toBeInTheDocument()
+
+    fireEvent.change(reasonInput, {
+      target: { value: 'Customer requested cancellation' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm cancellation' }))
+
+    expect(await screen.findByText('CANCELLED')).toBeInTheDocument()
+    expect(screen.getByText('Customer requested cancellation')).toBeInTheDocument()
+    expect(rpc).toHaveBeenCalledWith('cancel_rider_delivery', {
+      target_delivery_id: 8,
+      cancellation_reason: 'Customer requested cancellation',
+    })
+  })
 })
