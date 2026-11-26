@@ -24,6 +24,7 @@ type Order = {
   status: string
   total_amount: number
   delivery_address: string
+  cancellation_reason?: string | null
   requested_delivery_window_start?: string | null
   requested_delivery_window_end?: string | null
   customer_phone?: string
@@ -43,6 +44,10 @@ type PageState = 'loading' | 'ready' | 'login' | 'error'
 
 function formatStatus(status: string) {
   return status.replaceAll('_', ' ').toUpperCase()
+}
+
+function isClosedOrder(status: string | undefined) {
+  return ['delivered', 'cancelled', 'canceled'].includes(status?.toLowerCase() ?? '')
 }
 
 function getOrderStatusColors(status: string | undefined) {
@@ -115,6 +120,7 @@ function compareAssignedOrders(first: AssignedOrder, second: AssignedOrder) {
 
 export default function DriverDeliveries() {
   const [assignedOrders, setAssignedOrders] = useState<AssignedOrder[]>([])
+  const [cancellationDrafts, setCancellationDrafts] = useState<Record<number, boolean>>({})
   const [pageState, setPageState] = useState<PageState>('loading')
   const [error, setError] = useState('')
 
@@ -326,7 +332,7 @@ export default function DriverDeliveries() {
                       )}
                     </dd>
                   </div>
-                  {order?.status.toLowerCase() !== 'delivered' && (
+                  {!isClosedOrder(order?.status) && !cancellationDrafts[delivery.id] && (
                     <div style={styles.requestedWindowItem}>
                       <dt>Requested Delivery Window</dt>
                       <dd style={styles.requestedWindow}>
@@ -364,15 +370,52 @@ export default function DriverDeliveries() {
                   {deliveryPoint(order) && <details><summary>Preview drop-off map</summary>
                     <DeliveryMap markers={[{ ...deliveryPoint(order)!, label: 'Drop-off' }]} />
                   </details>}
-                  {order.status.toLowerCase() !== 'delivered' && (
+                  {!isClosedOrder(order.status) && !cancellationDrafts[delivery.id] && (
                     <a href={directionsUrl(order.delivery_address, deliveryPoint(order))} target="_blank" rel="noreferrer">Directions</a>
                   )}
                 </div>}
                 {order && order.status.toLowerCase() === 'delivered' && (
                   <ReturnedContainersForm deliveryId={delivery.id} />
                 )}
-                {!['delivered', 'cancelled', 'canceled'].includes(order?.status ?? '') && <RiderTracking
-                  id={delivery.id} status={delivery.status} onStatus={status => {
+                {order?.cancellation_reason && (
+                  <div className="delivery-panel" style={styles.cancellationRecorded}>
+                    <strong>Cancellation reason</strong>
+                    <p style={styles.cancellationReason}>{order.cancellation_reason}</p>
+                  </div>
+                )}
+                {!isClosedOrder(order?.status) && <CancelDeliveryForm
+                  deliveryId={delivery.id}
+                  open={Boolean(cancellationDrafts[delivery.id])}
+                  onOpenChange={(isOpen) => {
+                    setCancellationDrafts(current => ({ ...current, [delivery.id]: isOpen }))
+                  }}
+                  onCancelled={(reason) => {
+                    setAssignedOrders(current => current.map(item => item.delivery.id === delivery.id ? {
+                      delivery: { ...item.delivery, status: 'cancelled' },
+                      order: item.order ? {
+                        ...item.order,
+                        status: 'cancelled',
+                        cancellation_reason: reason,
+                      } : undefined,
+                    } : item))
+                  }}
+                />}
+                {!isClosedOrder(order?.status) && <RiderTracking
+                  id={delivery.id}
+                  status={delivery.status}
+                  cancelButton={!cancellationDrafts[delivery.id] &&
+                    ['in_progress', 'out_for_delivery'].includes(delivery.status.toLowerCase()) &&
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCancellationDrafts(current => ({ ...current, [delivery.id]: true }))
+                      }}
+                      className="driver-cancel-button"
+                    >
+                      Cancel
+                    </button>
+                  }
+                  onStatus={status => {
                     setAssignedOrders(current => current.map(item => item.delivery.id === delivery.id ? {
                       delivery: { ...item.delivery, status },
                       order: item.order ? { ...item.order, status } : undefined,
@@ -530,6 +573,90 @@ function ReturnedContainersForm({ deliveryId }: { deliveryId: number }) {
         style={state === 'error' ? styles.error : styles.returnedContainersMessage}
       >
         {message}
+      </p>
+    </form>
+  )
+}
+
+function CancelDeliveryForm({
+  deliveryId,
+  open,
+  onOpenChange,
+  onCancelled,
+}: {
+  deliveryId: number
+  open: boolean
+  onOpenChange: (isOpen: boolean) => void
+  onCancelled: (reason: string) => void
+}) {
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function cancelDelivery() {
+    const trimmedReason = reason.trim()
+    if (!trimmedReason) {
+      setError('Enter a reason for cancelling this delivery.')
+      return
+    }
+
+    setSaving(true)
+    setError('')
+    const { error: cancellationError } = await supabase.rpc('cancel_rider_delivery', {
+      target_delivery_id: deliveryId,
+      cancellation_reason: trimmedReason,
+    })
+    setSaving(false)
+
+    if (cancellationError) {
+      setError(cancellationError.message)
+      return
+    }
+
+    onCancelled(trimmedReason)
+  }
+
+  if (!open) return null
+
+  return (
+    <form
+      className="delivery-panel"
+      style={styles.cancelPanel}
+      onSubmit={(event) => {
+        event.preventDefault()
+        void cancelDelivery()
+      }}
+    >
+      <label htmlFor={`cancellation-reason-${deliveryId}`} style={styles.cancelLabel}>
+        Why is this delivery being cancelled?
+      </label>
+      <input
+        id={`cancellation-reason-${deliveryId}`}
+        type="text"
+        value={reason}
+        onChange={(event) => {
+          setReason(event.target.value)
+          setError('')
+        }}
+        placeholder="e.g. Customer requested cancellation"
+        maxLength={500}
+        style={styles.cancelInput}
+        aria-describedby={`cancellation-error-${deliveryId}`}
+      />
+      <div style={styles.cancelControls}>
+        <button type="submit" disabled={saving} className="driver-cancel-button">
+          {saving ? 'Cancelling...' : 'Confirm cancellation'}
+        </button>
+        <button type="button" disabled={saving} onClick={() => onOpenChange(false)}>
+          Keep delivery
+        </button>
+      </div>
+      <p
+        id={`cancellation-error-${deliveryId}`}
+        role={error ? 'alert' : 'status'}
+        style={styles.cancelMessage}
+      >
+        {error}
       </p>
     </form>
   )
@@ -775,5 +902,43 @@ const styles: Record<string, React.CSSProperties> = {
     margin: '8px 0 0',
     color: 'var(--muted)',
     fontSize: '13px',
+  },
+  cancelPanel: {
+    display: 'grid',
+    gap: '12px',
+    border: '1px solid var(--border)',
+    borderRadius: '10px',
+    padding: '16px',
+  },
+  cancelLabel: {
+    color: 'var(--text)',
+    fontWeight: 700,
+  },
+  cancelInput: {
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  cancelControls: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  cancelMessage: {
+    minHeight: '1.25em',
+    margin: 0,
+    color: 'var(--danger)',
+    fontSize: '13px',
+  },
+  cancellationRecorded: {
+    border: '1px solid var(--danger)',
+    borderRadius: '10px',
+    padding: '16px',
+    color: 'var(--text)',
+  },
+  cancellationReason: {
+    margin: '6px 0 0',
+    color: 'var(--muted)',
+    overflowWrap: 'anywhere',
   },
 }

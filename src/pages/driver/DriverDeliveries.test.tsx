@@ -123,6 +123,8 @@ describe('Driver deliveries', () => {
     expect(screen.getByText('1', { selector: 'p' })).toBeInTheDocument()
     expect(screen.queryByLabelText('How many empty containers were returned?'))
       .not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel' }))
+      .not.toBeInTheDocument()
     expect(queryCalls).toContainEqual({
       table: 'deliveries',
       method: 'eq',
@@ -402,6 +404,35 @@ describe('Driver deliveries', () => {
       expect(
         screen.getByLabelText('How many empty containers were returned?'),
       ).toBeInTheDocument()
+    })
+  })
+
+  it('cancels a delivery with a reason and hides delivery-only controls', async () => {
+    deliveryRows[0].status = 'out_for_delivery'
+    render(<DriverDeliveries />)
+
+    await screen.findByRole('heading', { name: 'Order #ORD-21' })
+    expect(screen.getByText('Requested Delivery Window')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Directions' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    const reasonInput = await screen.findByLabelText(
+      'Why is this delivery being cancelled?',
+    )
+    expect(screen.queryByText('Requested Delivery Window')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Directions' })).not.toBeInTheDocument()
+
+    fireEvent.change(reasonInput, {
+      target: { value: 'Customer requested cancellation' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm cancellation' }))
+
+    expect(await screen.findByText('CANCELLED')).toBeInTheDocument()
+    expect(screen.getByText('Customer requested cancellation')).toBeInTheDocument()
+    expect(rpc).toHaveBeenCalledWith('cancel_rider_delivery', {
+      target_delivery_id: 8,
+      cancellation_reason: 'Customer requested cancellation',
     })
   })
 })
