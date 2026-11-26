@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import { getCurrentUserRole } from '../../lib/api/auth'
 import { supabase } from '../../lib/supabase'
@@ -58,7 +59,61 @@ function Orders() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [updatingId, setUpdatingId] = useState<number | null>(null)
+  
+
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  function getOrderReference(order: Order) {
+    return order.order_reference || 'reference unavailable'
+  }
+
+  function getCustomerName(order: Order) {
+    const profile = Array.isArray(order.profiles)
+      ? order.profiles[0]
+      : order.profiles
+
+    if (!profile) {
+      return 'Unknown Customer'
+    }
+
+    const firstName = profile.first_name?.trim() ?? ''
+    const lastName = profile.last_name?.trim() ?? ''
+    const fullName = `${firstName} ${lastName}`.trim()
+
+    return fullName || 'Unknown Customer'
+  }
+
+  function formatDate(date: string) {
+    if (!date) return '—'
+
+    const parsedDate = new Date(date)
+
+    return Number.isNaN(parsedDate.getTime())
+      ? date
+      : parsedDate.toLocaleString()
+  }
+
+  function formatStatus(status: string) {
+    return status.replaceAll('_', ' ').replace(/\b\w/g, (letter) =>
+      letter.toUpperCase(),
+    )
+  }
+
+  const filteredOrders = orders.filter((order) => {
+    const search = searchTerm.trim().toLowerCase()
+
+    const matchesSearch =
+      search === '' ||
+      String(order.id).includes(search) ||
+      (order.order_reference ?? '').toLowerCase().includes(search) ||
+      getCustomerName(order).toLowerCase().includes(search)
+
+    const matchesStatus =
+      statusFilter === 'all' || order.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -179,7 +234,9 @@ function Orders() {
         ),
       )
 
-      setMessage(`Order ${getOrderReference(order)} status updated successfully.`)
+      setMessage(
+        `Order ${getOrderReference(order)} status updated successfully.`,
+      )
     } catch (err) {
       console.error('Unexpected status update error:', err)
       setError(
@@ -190,6 +247,7 @@ function Orders() {
     }
   }
 
+<<<<<<< Updated upstream
   function getOrderReference(order: Order) {
     return order.order_reference || 'reference unavailable'
   }
@@ -241,6 +299,8 @@ function Orders() {
     )
   })
 
+=======
+>>>>>>> Stashed changes
   return (
     <div style={pageStyle}>
       <h1>Customer Orders</h1>
@@ -276,12 +336,43 @@ function Orders() {
       </div>
 
       {error && (
-        <div style={errorStyle}>
+        <div role="alert" style={errorStyle}>
           <strong>Error:</strong> {error}
         </div>
       )}
 
-      {message && <p style={successStyle}>{message}</p>}
+      {message && (
+        <p role="status" style={successStyle}>
+          {message}
+        </p>
+      )}
+
+      {/* Search and Status Filter */}
+      <div style={filterContainerStyle}>
+        <input
+          type="search"
+          aria-label="Search orders"
+          placeholder="Search order reference or customer name..."
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          style={searchStyle}
+        />
+
+        <select
+          aria-label="Filter by status"
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+          style={selectStyle}
+        >
+          <option value="all">All Statuses</option>
+
+          {statusOptions.map((status) => (
+            <option key={status} value={status}>
+              {formatStatus(status)}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {loading ? (
         <p>Loading orders...</p>
@@ -290,6 +381,7 @@ function Orders() {
       ) : filteredOrders.length > 0 ? (
         <>
           <p>
+<<<<<<< Updated upstream
             Total orders: <strong>{filteredOrders.length}</strong>{searchTerm && ` (filtered from ${orders.length})`}
           </p>
 
@@ -365,17 +457,79 @@ function Orders() {
                             </option>
                           ))}
                         </select>
+=======
+            Showing <strong>{filteredOrders.length}</strong> of{' '}
+            <strong>{orders.length}</strong> orders.
+          </p>
 
-                        {updatingId === order.id && (
-                          <span> Saving...</span>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          {filteredOrders.length === 0 ? (
+            <p>No orders match your search or selected status.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={tableStyle}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--surface)' }}>
+                    <th style={cellStyle}>Order Reference #</th>
+                    <th style={cellStyle}>Customer Name</th>
+                    <th style={cellStyle}>Order Date</th>
+                    <th style={cellStyle}>Total Amount</th>
+                    <th style={cellStyle}>Status</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {filteredOrders.map((order) => {
+                    const options = statusOptions.includes(order.status)
+                      ? statusOptions
+                      : [order.status, ...statusOptions]
+
+                    return (
+                      <tr key={order.id}>
+                        <td style={cellStyle}>
+                          {getOrderReference(order)}
+                        </td>
+>>>>>>> Stashed changes
+
+                        <td style={cellStyle}>
+                          {getCustomerName(order)}
+                        </td>
+
+                        <td style={cellStyle}>
+                          {formatDate(order.order_date)}
+                        </td>
+
+                        <td style={cellStyle}>
+                          ₱{Number(order.total_amount).toFixed(2)}
+                        </td>
+
+                        <td style={cellStyle}>
+                          <select
+                            aria-label={`Status for order ${getOrderReference(order)}`}
+                            value={order.status}
+                            disabled={updatingId !== null}
+                            onChange={(event) =>
+                              void updateStatus(order, event.target.value)
+                            }
+                            style={selectStyle}
+                          >
+                            {options.map((status) => (
+                              <option key={status} value={status}>
+                                {formatStatus(status)}
+                              </option>
+                            ))}
+                          </select>
+
+                          {updatingId === order.id && (
+                            <span> Saving...</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       ) : null}
     </div>
@@ -393,6 +547,25 @@ const actionsStyle: React.CSSProperties = {
   flexWrap: 'wrap',
   gap: '10px',
   marginBottom: '20px',
+}
+
+const filterContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '12px',
+  marginBottom: '20px',
+  alignItems: 'center',
+}
+
+const searchStyle: React.CSSProperties = {
+  flex: '1 1 280px',
+  minWidth: '200px',
+  padding: '10px 12px',
+  border: '1px solid var(--border)',
+  borderRadius: '5px',
+  backgroundColor: 'var(--surface)',
+  color: 'var(--text)',
+  font: 'inherit',
 }
 
 const buttonStyle: React.CSSProperties = {
