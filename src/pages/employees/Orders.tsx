@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { getCurrentUserRole } from '../../lib/api/auth'
 import { supabase } from '../../lib/supabase'
 import { appPath } from '../../lib/navigation'
+import DeliveryMap from '../../components/DeliveryMap'
+import { deliveryPoint } from '../../lib/deliveryMap'
 
 type Profile = {
   id: string
@@ -11,14 +13,7 @@ type Profile = {
   role: string | null
 }
 
-import DeliveryMap from '../../components/DeliveryMap'
-import { deliveryPoint } from '../../lib/deliveryMap'
-
 type Order = {
-  delivery_latitude?: number | null
-  delivery_longitude?: number | null
-  delivery_instructions?: string | null
-
   id: number
   order_reference: string | null
   user_id: string
@@ -26,6 +21,9 @@ type Order = {
   status: string
   total_amount: number
   delivery_address: string
+  delivery_latitude?: number | null
+  delivery_longitude?: number | null
+  delivery_instructions?: string | null
   created_at: string
   profiles: Profile | Profile[] | null
 }
@@ -59,8 +57,6 @@ function Orders() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [updatingId, setUpdatingId] = useState<number | null>(null)
-  
-
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
@@ -106,8 +102,10 @@ function Orders() {
     const matchesSearch =
       search === '' ||
       String(order.id).includes(search) ||
-      (order.order_reference ?? '').toLowerCase().includes(search) ||
-      getCustomerName(order).toLowerCase().includes(search)
+      getOrderReference(order).toLowerCase().includes(search) ||
+      getCustomerName(order).toLowerCase().includes(search) ||
+      order.delivery_address.toLowerCase().includes(search) ||
+      formatStatus(order.status).toLowerCase().includes(search)
 
     const matchesStatus =
       statusFilter === 'all' || order.status === statusFilter
@@ -247,60 +245,6 @@ function Orders() {
     }
   }
 
-<<<<<<< Updated upstream
-  function getOrderReference(order: Order) {
-    return order.order_reference || 'reference unavailable'
-  }
-
-  function getCustomerName(order: Order) {
-    const profile = Array.isArray(order.profiles)
-      ? order.profiles[0]
-      : order.profiles
-
-    if (!profile) {
-      return 'Unknown Customer'
-    }
-
-    const firstName = profile.first_name?.trim() ?? ''
-    const lastName = profile.last_name?.trim() ?? ''
-    const fullName = `${firstName} ${lastName}`.trim()
-
-    return fullName || 'Unknown Customer'
-  }
-
-  function formatDate(date: string) {
-    if (!date) return '—'
-
-    const parsedDate = new Date(date)
-
-    return Number.isNaN(parsedDate.getTime())
-      ? date
-      : parsedDate.toLocaleString()
-  }
-
-  function formatStatus(status: string) {
-    return status.replaceAll('_', ' ').replace(/\b\w/g, (letter) =>
-      letter.toUpperCase(),
-    )
-  }
-
-  const filteredOrders = orders.filter((order) => {
-    const searchLower = searchTerm.toLowerCase()
-    const reference = getOrderReference(order).toLowerCase()
-    const customer = getCustomerName(order).toLowerCase()
-    const address = order.delivery_address.toLowerCase()
-    const status = formatStatus(order.status).toLowerCase()
-
-    return (
-      reference.includes(searchLower) ||
-      customer.includes(searchLower) ||
-      address.includes(searchLower) ||
-      status.includes(searchLower)
-    )
-  })
-
-=======
->>>>>>> Stashed changes
   return (
     <div style={pageStyle}>
       <h1>Customer Orders</h1>
@@ -325,14 +269,6 @@ function Orders() {
         >
           {loading ? 'Loading...' : 'Refresh Orders'}
         </button>
-
-        <input
-          type="text"
-          placeholder="Search orders..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={searchInputStyle}
-        />
       </div>
 
       {error && (
@@ -347,12 +283,11 @@ function Orders() {
         </p>
       )}
 
-      {/* Search and Status Filter */}
       <div style={filterContainerStyle}>
         <input
           type="search"
           aria-label="Search orders"
-          placeholder="Search order reference or customer name..."
+          placeholder="Search reference, customer, address, or status..."
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           style={searchStyle}
@@ -376,13 +311,17 @@ function Orders() {
 
       {loading ? (
         <p>Loading orders...</p>
-      ) : filteredOrders.length === 0 && !error ? (
-        <p>{searchTerm ? 'No matching orders found.' : 'No orders found.'}</p>
-      ) : filteredOrders.length > 0 ? (
+      ) : filteredOrders.length === 0 ? (
+        <p>
+          {searchTerm || statusFilter !== 'all'
+            ? 'No matching orders found.'
+            : 'No orders found.'}
+        </p>
+      ) : (
         <>
           <p>
-<<<<<<< Updated upstream
-            Total orders: <strong>{filteredOrders.length}</strong>{searchTerm && ` (filtered from ${orders.length})`}
+            Showing <strong>{filteredOrders.length}</strong> of{' '}
+            <strong>{orders.length}</strong> orders.
           </p>
 
           <div style={{ overflowX: 'auto' }}>
@@ -408,25 +347,52 @@ function Orders() {
                   const options = statusOptions.includes(order.status)
                     ? statusOptions
                     : [order.status, ...statusOptions]
-                  const addressParts = getAddressParts(order.delivery_address)
+
+                  const addressParts = getAddressParts(
+                    order.delivery_address,
+                  )
+
                   const point = deliveryPoint(order)
 
                   return (
                     <tr key={order.id}>
-                      <td style={cellStyle}>{getOrderReference(order)}</td>
-                      <td style={cellStyle}>{getCustomerName(order)}</td>
+                      <td style={cellStyle}>
+                        {getOrderReference(order)}
+                      </td>
+
+                      <td style={cellStyle}>
+                        {getCustomerName(order)}
+                      </td>
+
                       <td style={cellStyle}>
                         {formatDate(order.order_date)}
                       </td>
-                      <td style={cellStyle}>{addressParts.addressLine || '—'}</td>
-                      <td style={cellStyle}>{addressParts.barangay || '—'}</td>
-                      <td style={cellStyle}>{addressParts.city || '—'}</td>
-                      <td style={cellStyle}>{addressParts.province || '—'}</td>
-                      <td style={cellStyle}>{addressParts.others || '—'}</td>
+
+                      <td style={cellStyle}>
+                        {addressParts.addressLine || '—'}
+                      </td>
+
+                      <td style={cellStyle}>
+                        {addressParts.barangay || '—'}
+                      </td>
+
+                      <td style={cellStyle}>
+                        {addressParts.city || '—'}
+                      </td>
+
+                      <td style={cellStyle}>
+                        {addressParts.province || '—'}
+                      </td>
+
+                      <td style={cellStyle}>
+                        {addressParts.others || '—'}
+                      </td>
+
                       <td style={cellStyle}>
                         {order.delivery_instructions && (
                           <p>{order.delivery_instructions}</p>
                         )}
+
                         {point ? (
                           <details>
                             <summary>Preview drop-off map</summary>
@@ -438,9 +404,11 @@ function Orders() {
                           !order.delivery_instructions && '—'
                         )}
                       </td>
+
                       <td style={cellStyle}>
                         ₱{Number(order.total_amount).toFixed(2)}
                       </td>
+
                       <td style={cellStyle}>
                         <select
                           aria-label={`Status for order ${getOrderReference(order)}`}
@@ -457,81 +425,19 @@ function Orders() {
                             </option>
                           ))}
                         </select>
-=======
-            Showing <strong>{filteredOrders.length}</strong> of{' '}
-            <strong>{orders.length}</strong> orders.
-          </p>
 
-          {filteredOrders.length === 0 ? (
-            <p>No orders match your search or selected status.</p>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={tableStyle}>
-                <thead>
-                  <tr style={{ backgroundColor: 'var(--surface)' }}>
-                    <th style={cellStyle}>Order Reference #</th>
-                    <th style={cellStyle}>Customer Name</th>
-                    <th style={cellStyle}>Order Date</th>
-                    <th style={cellStyle}>Total Amount</th>
-                    <th style={cellStyle}>Status</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {filteredOrders.map((order) => {
-                    const options = statusOptions.includes(order.status)
-                      ? statusOptions
-                      : [order.status, ...statusOptions]
-
-                    return (
-                      <tr key={order.id}>
-                        <td style={cellStyle}>
-                          {getOrderReference(order)}
-                        </td>
->>>>>>> Stashed changes
-
-                        <td style={cellStyle}>
-                          {getCustomerName(order)}
-                        </td>
-
-                        <td style={cellStyle}>
-                          {formatDate(order.order_date)}
-                        </td>
-
-                        <td style={cellStyle}>
-                          ₱{Number(order.total_amount).toFixed(2)}
-                        </td>
-
-                        <td style={cellStyle}>
-                          <select
-                            aria-label={`Status for order ${getOrderReference(order)}`}
-                            value={order.status}
-                            disabled={updatingId !== null}
-                            onChange={(event) =>
-                              void updateStatus(order, event.target.value)
-                            }
-                            style={selectStyle}
-                          >
-                            {options.map((status) => (
-                              <option key={status} value={status}>
-                                {formatStatus(status)}
-                              </option>
-                            ))}
-                          </select>
-
-                          {updatingId === order.id && (
-                            <span> Saving...</span>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                        {updatingId === order.id && (
+                          <span> Saving...</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </>
-      ) : null}
+      )}
     </div>
   )
 }
@@ -579,7 +485,7 @@ const buttonStyle: React.CSSProperties = {
 
 const tableStyle: React.CSSProperties = {
   width: '100%',
-  minWidth: '850px',
+  minWidth: '1100px',
   borderCollapse: 'collapse',
   backgroundColor: 'var(--card)',
 }
@@ -612,15 +518,6 @@ const errorStyle: React.CSSProperties = {
 
 const successStyle: React.CSSProperties = {
   color: '#15803d',
-}
-
-const searchInputStyle: React.CSSProperties = {
-  padding: '10px 16px',
-  border: '1px solid var(--border)',
-  borderRadius: '5px',
-  backgroundColor: 'var(--surface)',
-  color: 'var(--text)',
-  minWidth: '250px',
 }
 
 export default Orders
