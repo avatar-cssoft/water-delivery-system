@@ -30,8 +30,8 @@ export const LIMITS = {
   // Longest accepted mobile spelling: "+63 912 345 6789" plus some extra spacing.
   phone: { max: 20 },
   email: { max: 254 },
-  // Supabase Auth requires at least 6; bcrypt ignores anything past 72 bytes.
-  password: { min: 6, max: 72 },
+  // Supabase Auth requires at least 8; bcrypt ignores anything past 15 bytes.
+  password: { min: 8, max: 15 },
 } as const
 
 // Control characters, zero-width characters, and bidi overrides. They are invisible,
@@ -134,8 +134,8 @@ export function validateRegister(input: RegisterInput): RegisterResult {
     errors.password = 'Password is required.'
   } else if (password.length < LIMITS.password.min) {
     errors.password = `Password must be at least ${LIMITS.password.min} characters.`
-  } else if (new TextEncoder().encode(password).length > LIMITS.password.max) {
-    errors.password = 'Password is too long.'
+  } else if (password.length > LIMITS.password.max) {
+    errors.password = `Password must be at most ${LIMITS.password.max} characters.`
   }
 
   if (Object.keys(errors).length > 0 || !phone) {

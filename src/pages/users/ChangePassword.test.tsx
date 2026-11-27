@@ -78,12 +78,12 @@ describe('ChangePassword', () => {
     expect(screen.getByText('Passwords do not match.')).toBeInTheDocument()
     expect(mocks.updateUser).not.toHaveBeenCalled()
 
-    fireEvent.change(newPassword, { target: { value: 'a'.repeat(73) } })
-    fireEvent.change(confirmation, { target: { value: 'a'.repeat(73) } })
+    fireEvent.change(newPassword, { target: { value: 'a'.repeat(16) } })
+    fireEvent.change(confirmation, { target: { value: 'a'.repeat(16) } })
     fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
 
     expect(
-      screen.getByText('Password must be no more than 72 bytes.'),
+      screen.getByText('Use no more than 15 characters.'),
     ).toBeInTheDocument()
     expect(mocks.updateUser).not.toHaveBeenCalled()
   })
@@ -95,10 +95,10 @@ describe('ChangePassword', () => {
       target: { value: 'current-password' },
     })
     fireEvent.change(await screen.findByLabelText('New password'), {
-      target: { value: 'new-secure-password' },
+      target: { value: 'new-secure-pw1' },
     })
     fireEvent.change(screen.getByLabelText('Confirm new password'), {
-      target: { value: 'new-secure-password' },
+      target: { value: 'new-secure-pw1' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
 
@@ -107,7 +107,7 @@ describe('ChangePassword', () => {
     )
     expect(mocks.updateUser).toHaveBeenCalledWith({
       current_password: 'current-password',
-      password: 'new-secure-password',
+      password: 'new-secure-pw1',
     })
     expect(screen.getByLabelText('Current password')).toHaveValue('')
     expect(screen.getByLabelText('New password')).toHaveValue('')
@@ -126,10 +126,10 @@ describe('ChangePassword', () => {
       target: { value: 'current-password' },
     })
     fireEvent.change(await screen.findByLabelText('New password'), {
-      target: { value: 'new-secure-password' },
+      target: { value: 'new-secure-pw1' },
     })
     fireEvent.change(screen.getByLabelText('Confirm new password'), {
-      target: { value: 'new-secure-password' },
+      target: { value: 'new-secure-pw1' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
 
@@ -153,10 +153,10 @@ describe('ChangePassword', () => {
       target: { value: 'wrong-current-password' },
     })
     fireEvent.change(await screen.findByLabelText('New password'), {
-      target: { value: 'new-secure-password' },
+      target: { value: 'new-secure-pw1' },
     })
     fireEvent.change(screen.getByLabelText('Confirm new password'), {
-      target: { value: 'new-secure-password' },
+      target: { value: 'new-secure-pw1' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
 
@@ -165,7 +165,7 @@ describe('ChangePassword', () => {
     )
     expect(mocks.updateUser).toHaveBeenCalledWith({
       current_password: 'wrong-current-password',
-      password: 'new-secure-password',
+      password: 'new-secure-pw1',
     })
   })
 })

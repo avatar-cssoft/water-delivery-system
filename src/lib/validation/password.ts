@@ -1,14 +1,15 @@
 import { LIMITS } from './register'
 
-export const PASSWORD_MIN_LENGTH = 8
+export const PASSWORD_MIN_LENGTH = LIMITS.password.min
+export const PASSWORD_MAX_LENGTH = LIMITS.password.max
 
 export function validateNewPassword(password: string): string | null {
   if (!password) return 'Enter a new password.'
   if (password.length < PASSWORD_MIN_LENGTH) {
     return `Use at least ${PASSWORD_MIN_LENGTH} characters.`
   }
-  if (new TextEncoder().encode(password).length > LIMITS.password.max) {
-    return `Password must be no more than ${LIMITS.password.max} bytes.`
+  if (password.length > PASSWORD_MAX_LENGTH) {
+    return `Use no more than ${PASSWORD_MAX_LENGTH} characters.`
   }
   return null
 }

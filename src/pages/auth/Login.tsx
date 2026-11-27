@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { appPath } from '../../lib/navigation'
 
 function Login() {
+  const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -121,11 +122,23 @@ function Login() {
 
           <input
             id="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
             required
           />
+
+          <br />
+
+          <label>
+            <input
+              type="checkbox"
+              checked={showPassword}
+              onChange={(e) => setShowPassword(e.target.checked)}
+            />{' '}
+            Show password
+          </label>
         </div>
 
         <br />
@@ -142,6 +155,11 @@ function Login() {
             {error}
           </p>
         )}
+
+         <p>
+          <a href={appPath('/forgot-password')}>Forgot password?</a>
+        </p>
+
       </form>
 
       <p>
