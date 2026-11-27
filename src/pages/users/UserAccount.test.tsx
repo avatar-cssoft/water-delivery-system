@@ -82,8 +82,8 @@ describe('UserAccounts profile editing', () => {
     expect(screen.getByLabelText('Middle Initial (optional)')).toHaveAttribute('maxLength', '2')
     expect(screen.getByLabelText('Last Name')).toHaveValue('Doe')
     expect(screen.getByText('+63')).toBeInTheDocument()
-    expect(screen.getByLabelText('Phone')).toHaveValue('9993053242')
-    expect(screen.getByLabelText('Phone')).toHaveAttribute('maxLength', '10')
+    expect(screen.getByLabelText('Phone (optional)')).toHaveValue('9993053242')
+    expect(screen.getByLabelText('Phone (optional)')).toHaveAttribute('maxLength', '10')
     expect(screen.getByLabelText('Primary Address')).toHaveValue('1 Old Street')
     expect(screen.getByLabelText('Primary Address')).toHaveAttribute('readonly')
     expect(
@@ -121,10 +121,10 @@ describe('UserAccounts profile editing', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Phone'), {
+    fireEvent.change(screen.getByLabelText('Phone (optional)'), {
       target: { value: '912abc3456789' },
     })
-    expect(screen.getByLabelText('Phone')).toHaveValue('9123456789')
+    expect(screen.getByLabelText('Phone (optional)')).toHaveValue('9123456789')
     expect(screen.queryByText(/Enter a valid PH mobile number/)).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('First Name'), {
@@ -137,10 +137,10 @@ describe('UserAccounts profile editing', () => {
       target: { value: 'Jane' },
     })
 
-    fireEvent.change(screen.getByLabelText('Phone'), {
+    fireEvent.change(screen.getByLabelText('Phone (optional)'), {
       target: { value: '912 345' },
     })
-    expect(screen.getByLabelText('Phone')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText('Phone (optional)')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByRole('button', { name: 'Save Changes' })).toBeDisabled()
 
     fireEvent.change(screen.getByLabelText('Last Name'), {
@@ -249,7 +249,7 @@ describe('UserAccounts profile editing', () => {
     expect(screen.getByLabelText('First Name')).toBeDisabled()
     expect(screen.getByLabelText('Middle Initial (optional)')).toBeDisabled()
     expect(screen.getByLabelText('Last Name')).toBeDisabled()
-    expect(screen.getByLabelText('Phone')).toBeDisabled()
+    expect(screen.getByLabelText('Phone (optional)')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
 
     await act(async () => {

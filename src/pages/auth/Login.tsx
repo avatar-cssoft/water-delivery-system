@@ -97,7 +97,7 @@ function Login() {
       <form onSubmit={handleLogin}>
         <div>
           <label htmlFor="email">
-            Email
+            Email Address
           </label>
 
           <br />
@@ -108,6 +108,7 @@ function Login() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            placeholder="Enter your email address"
           />
         </div>
 
@@ -127,6 +128,7 @@ function Login() {
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             required
+            placeholder="Enter your password"
           />
 
           <br />

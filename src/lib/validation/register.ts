@@ -31,7 +31,7 @@ export const LIMITS = {
   phone: { max: 20 },
   email: { max: 254 },
   // Supabase Auth requires at least 8; bcrypt ignores anything past 15 bytes.
-  password: { min: 8, max: 15 },
+  password: { min: 8, max: 16 },
 } as const
 
 // Control characters, zero-width characters, and bidi overrides. They are invisible,

@@ -10,12 +10,13 @@ type Profile = {
   first_name: string
   last_name: string
   middle_initial: string | null
-  address: string
-  phone: string
+  address: string | null
+  phone: string | null
   role: string
 }
-type ProfileForm = Omit<Profile, 'id' | 'role' | 'middle_initial' | 'address'> & {
+type ProfileForm = Omit<Profile, 'id' | 'role' | 'middle_initial' | 'address' | 'phone'> & {
   middle_initial: string
+  phone: string
 }
 
 function UserAccounts() {
@@ -91,19 +92,28 @@ function UserAccounts() {
   // Editing Profile Functions
   const MIDDLE_INITIAL_PATTERN = /^\p{L}{1,2}$/u
 
-  function formatPhone(phone: string) {
-    const normalized = normalizeMobile(phone)
-    if (normalized) {
-      const digits = normalized.slice(3)
-      return `+63 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`
-    }
-    return phone
+  function formatPhone(phone: string | null) {
+  if (!phone) return 'Not yet provided'
+
+  const normalized = normalizeMobile(phone)
+
+  if (normalized) {
+    const digits = normalized.slice(3)
+    return `+63 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`
   }
 
-  function getPhoneDigits(phone: string) {
-    const normalized = normalizeMobile(phone)
-    return normalized ? normalized.slice(3) : phone.replace(/\D/g, '').slice(-10)
-  }
+  return phone
+}
+
+function getPhoneDigits(phone: string | null) {
+  if (!phone) return ''
+
+  const normalized = normalizeMobile(phone)
+
+  return normalized
+    ? normalized.slice(3)
+    : phone.replace(/\D/g, '').slice(-10)
+}
 
   const handleEdit = () => {
     if (!profile) return
@@ -162,7 +172,8 @@ function UserAccounts() {
   const lastNameResult = validateName(formValues?.last_name ?? '', 'Last name')
   const lastNameIsValid = !lastNameResult.error
   const phoneIsValid =
-    formValues !== null && /^9\d{9}$/.test(formValues.phone)
+    formValues !== null &&
+    (formValues.phone === '' || /^9\d{9}$/.test(formValues.phone))
 
   // Capitalize each name word and keep the middle initial uppercase.
   const formatName = (name: string) =>
@@ -186,8 +197,11 @@ function UserAccounts() {
       return
     }
 
-    const normalizedPhone = normalizeMobile(`+63${formValues.phone}`)
-    if (!normalizedPhone) return
+    const normalizedPhone = formValues.phone
+      ? normalizeMobile(`+63${formValues.phone}`)
+      : null
+
+    if (formValues.phone && !normalizedPhone) return
     const releaseCooldown = () => {
       saveLocked.current = false
       cooldownEndsAt.current = 0
@@ -320,7 +334,7 @@ function UserAccounts() {
               <strong>Last Name:</strong> {formatName(profile.last_name)}
             </p>
             <p>
-              <strong>Primary Address:</strong> {profile.address}
+              <strong>Primary Address:</strong> {profile.address || 'Not yet provided'}
             </p>
             <p>
               <strong>Phone:</strong> {formatPhone(profile.phone)}
@@ -396,7 +410,7 @@ function UserAccounts() {
             </div>
 
             <div>
-              <label htmlFor="phone">Phone</label>
+              <label htmlFor="phone">Phone (optional)</label>
               <div className="phone-input-row">
                 <span aria-hidden="true">+63</span>
                 <input
@@ -413,7 +427,6 @@ function UserAccounts() {
                   }}
                   aria-invalid={!phoneIsValid}
                   disabled={saving}
-                  required
                 />
               </div>
               {!phoneIsValid && (
@@ -427,7 +440,7 @@ function UserAccounts() {
                 id="primary-address"
                 className="profile-readonly-address"
                 type="text"
-                value={profile.address}
+                value={profile.address ?? ''}
                 readOnly
                 aria-readonly="true"
               />

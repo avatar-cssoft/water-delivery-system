@@ -36,6 +36,7 @@ import DriverDashboard from './pages/driver/DriverDashboard'
 import DriverProfile from './pages/driver/DriverProfile'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
+import GetStarted from './pages/auth/GetStarted'
 
 function EmployeeDashboardRoute() {
   const { role, department } = useNavRole()
@@ -123,9 +124,7 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
-
-            <Route path="login" element={<Login />} />
-            <Route path="register" element={<Register />} />
+            <Route path="get-started" element={<GetStarted />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password" element={<ResetPassword />} />
 

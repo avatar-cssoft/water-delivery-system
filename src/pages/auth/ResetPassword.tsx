@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import { appPath } from '../../lib/navigation'
+import PasswordRules from '../../components/PasswordRules'
 import {
   PASSWORD_MAX_LENGTH,
   validateNewPassword,
@@ -163,7 +164,7 @@ function ResetPassword() {
           Show password
         </label>
 
-        <p>Password must be 8 to 15 characters.</p>
+        <PasswordRules password={password} />
 
         <button type="submit" disabled={loading}>
           {loading ? 'Saving...' : 'Reset password'}

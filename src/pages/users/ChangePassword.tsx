@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import PasswordRules from '../../components/PasswordRules'
 import {
   validateNewPassword,
   validatePasswordConfirmation,
@@ -201,6 +202,7 @@ export default function ChangePassword() {
             disabled={saving}
             required
           />
+          <PasswordRules password={newPassword} />
           {submitted && passwordError && (
             <p id="new-password-error" role="alert">
               {passwordError}
