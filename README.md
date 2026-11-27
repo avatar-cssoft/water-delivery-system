@@ -10,7 +10,7 @@ A web and mobile app where customers order water refills, pick a delivery slot, 
 | **Sprint 1** | User authentication & database setup | ✅ Completed | Sept 7 - Oct 14 2026 |
 | **Sprint 2** | Dashboard UI and API integration | ✅ Completed | Oct 15 - Oct 23, 2026 |
 | **Sprint 3** | Complete the end-to-end ordering and delivery system | ✅ Completed | Nov 4 - Nov 13, 2026 |
-| **Sprint 4** | Finalize and verify all remaining system features | 🚧 In Progress | Nov 14 - Nov 26, 2026 |
+| **Sprint 4** | Finalize and verify all remaining system features | ✅ Completed | Nov 14 - Nov 26, 2026 |
 
 ## DataBase Diagram
 <img width="1347" height="1418" alt="updated-schema-visualizer" src="https://github.com/user-attachments/assets/604c203e-f909-41bd-96d0-8f9cfaedcf79" />
